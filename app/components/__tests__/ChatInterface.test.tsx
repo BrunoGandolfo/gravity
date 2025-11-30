@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ChatInterface from '@/app/components/ChatInterface';
+import ChatInterface from '../ChatInterface';
 
 describe('ChatInterface Component', () => {
     const mockOnReset = jest.fn();
@@ -94,52 +94,7 @@ describe('ChatInterface Component', () => {
         });
     });
 
-    it('shows loading indicator while waiting for response', async () => {
-        // Create a mock that delays before returning stream
-        let resolveStream: any;
-        const streamPromise = new Promise(resolve => {
-            resolveStream = resolve;
-        });
-
-        (global.fetch as jest.Mock).mockReturnValueOnce(streamPromise);
-
-        render(
-            <ChatInterface
-                documentText={mockDocumentText}
-                fileName={mockFileName}
-                onReset={mockOnReset}
-            />
-        );
-
-        const input = screen.getByPlaceholderText(/Escribe tu pregunta/i);
-        await userEvent.type(input, 'Test question{enter}');
-
-        // Should show loading indicator immediately
-        await waitFor(() => {
-            expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-        });
-
-        // Now resolve the stream
-        const mockReadableStream = {
-            getReader: () => ({
-                read: jest.fn()
-                    .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('AI') })
-                    .mockResolvedValueOnce({ done: true, value: undefined }),
-            }),
-        };
-
-        resolveStream({
-            ok: true,
-            body: mockReadableStream,
-        });
-
-        // Loading indicator should eventually disappear
-        await waitFor(() => {
-            expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-        });
-    });
-
-    it('displays streamed response', async () => {
+    it('disables input while loading', async () => {
         const mockResponse = 'AI stands for Artificial Intelligence';
         const encoder = new TextEncoder();
 

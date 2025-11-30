@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import DocumentUploader from '@/app/components/DocumentUploader';
+import DocumentUploader from '../DocumentUploader';
 
 describe('DocumentUploader Component', () => {
     const mockOnUploadComplete = jest.fn();

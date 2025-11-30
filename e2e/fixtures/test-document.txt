@@ -1,0 +1,5 @@
+Este es un documento de prueba.
+
+Este archivo se usa para testing E2E.
+
+Contenido: Lorem ipsum dolor sit amet.

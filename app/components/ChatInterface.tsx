@@ -1,16 +1,20 @@
 "use client";
+
 import { useState, useRef, useEffect } from "react";
 import { Send, Bot, User, RefreshCw, FileText, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+
 interface ChatInterfaceProps {
     documentText: string;
     fileName: string;
     onReset: () => void;
 }
+
 interface Message {
     role: "user" | "assistant";
     content: string;
 }
+
 export default function ChatInterface({ documentText, fileName, onReset }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([
         { role: "assistant", content: `¡Hola! 👋 He leído **${fileName}** y estoy listo para ayudarte a comprenderlo mejor. ¿Qué te gustaría saber?` }
@@ -19,20 +23,25 @@ export default function ChatInterface({ documentText, fileName, onReset }: ChatI
     const [isLoading, setIsLoading] = useState(false);
     const [streamingContent, setStreamingContent] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
+
     useEffect(() => {
         scrollToBottom();
     }, [messages, streamingContent]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim() || isLoading) return;
+
         const userMessage = input.trim();
         setInput("");
         setMessages(prev => [...prev, { role: "user", content: userMessage }]);
         setIsLoading(true);
         setStreamingContent("");
+
         try {
             const response = await fetch("/api/chat", {
                 method: "POST",
@@ -42,23 +51,23 @@ export default function ChatInterface({ documentText, fileName, onReset }: ChatI
                     context: documentText
                 }),
             });
+
             if (!response.ok) throw new Error("Error en la respuesta");
+
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
             let fullContent = "";
+
             if (reader) {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
+
                     const chunk = decoder.decode(value, { stream: true });
-                    
-                    // Add characters one by one with delay for smoother streaming
-                    for (const char of chunk) {
-                        fullContent += char;
-                        setStreamingContent(fullContent);
-                        await new Promise(resolve => setTimeout(resolve, 20));
-                    }
+                    fullContent += chunk;
+                    setStreamingContent(fullContent);
                 }
+
                 setMessages(prev => [...prev, { role: "assistant", content: fullContent }]);
                 setStreamingContent("");
             }
@@ -69,8 +78,9 @@ export default function ChatInterface({ documentText, fileName, onReset }: ChatI
             setIsLoading(false);
         }
     };
+
     return (
-        <div className="w-full max-w-6xl mx-auto h-[85vh] flex flex-col rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl animate-in fade-in duration-500">
+        <div data-testid="chat-interface" className="w-full max-w-6xl mx-auto h-[85vh] flex flex-col rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl animate-in fade-in duration-500">
             {/* Header */}
             <div className="p-5 border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent backdrop-blur-xl flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -81,7 +91,7 @@ export default function ChatInterface({ documentText, fileName, onReset }: ChatI
                         </div>
                     </div>
                     <div className="min-w-0">
-                        <h3 className="font-bold text-base truncate max-w-[200px] md:max-w-md">
+                        <h3 data-testid="chat-filename" className="font-bold text-base truncate max-w-[200px] md:max-w-md">
                             {fileName}
                         </h3>
                         <p className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
@@ -98,6 +108,7 @@ export default function ChatInterface({ documentText, fileName, onReset }: ChatI
                     </div>
                 </div>
                 <button
+                    data-testid="reset-button"
                     onClick={onReset}
                     className="p-2.5 hover:bg-white/10 rounded-xl transition-all text-gray-400 hover:text-white group"
                     title="Subir otro documento"
@@ -105,11 +116,13 @@ export default function ChatInterface({ documentText, fileName, onReset }: ChatI
                     <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
                 </button>
             </div>
+
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div data-testid="messages-container" className="flex-1 overflow-y-auto p-6 space-y-6">
                 {messages.map((msg, idx) => (
                     <div
                         key={idx}
+                        data-testid={`message-${msg.role}-${idx + 1}`}
                         className={`flex gap-4 animate-in slide-in-from-bottom duration-300 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
                     >
                         {/* Avatar */}
@@ -122,6 +135,7 @@ export default function ChatInterface({ documentText, fileName, onReset }: ChatI
             `}>
                             {msg.role === "user" ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
                         </div>
+
                         {/* Message Bubble */}
                         <div className={`
               max-w-[75%] rounded-3xl p-5 text-sm leading-relaxed shadow-lg
@@ -148,6 +162,7 @@ export default function ChatInterface({ documentText, fileName, onReset }: ChatI
                         </div>
                     </div>
                 ))}
+
                 {/* Streaming Message */}
                 {streamingContent && (
                     <div className="flex gap-4 animate-in slide-in-from-bottom duration-300">
@@ -173,13 +188,14 @@ export default function ChatInterface({ documentText, fileName, onReset }: ChatI
                         </div>
                     </div>
                 )}
+
                 {/* Loading Indicator */}
                 {isLoading && !streamingContent && (
                     <div className="flex gap-4 animate-in fade-in duration-300">
                         <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#ec4899] to-[#14b8a6] flex items-center justify-center flex-shrink-0 shadow-lg">
                             <Bot className="w-5 h-5 text-white" />
                         </div>
-                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl rounded-tl-lg p-5 flex items-center gap-2">
+                        <div data-testid="loading-indicator" className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl rounded-tl-lg p-5 flex items-center gap-2">
                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
@@ -188,10 +204,12 @@ export default function ChatInterface({ documentText, fileName, onReset }: ChatI
                 )}
                 <div ref={messagesEndRef} />
             </div>
+
             {/* Input Area */}
             <div className="p-5 border-t border-white/10 bg-gradient-to-r from-transparent to-white/5 backdrop-blur-xl">
                 <form onSubmit={handleSubmit} className="relative">
                     <input
+                        data-testid="chat-input"
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
@@ -200,6 +218,7 @@ export default function ChatInterface({ documentText, fileName, onReset }: ChatI
                         disabled={isLoading}
                     />
                     <button
+                        data-testid="send-button"
                         type="submit"
                         disabled={!input.trim() || isLoading}
                         className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-gradient-to-br from-[#6366f1] to-[#ec4899] text-white rounded-xl hover:shadow-lg hover:shadow-[#6366f1]/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95"

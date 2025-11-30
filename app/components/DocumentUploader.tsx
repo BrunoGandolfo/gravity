@@ -97,6 +97,7 @@ export default function DocumentUploader({ onUploadComplete }: DocumentUploaderP
     return (
         <div className="w-full max-w-4xl mx-auto">
             <div
+                data-testid="upload-dropzone"
                 className={`
           relative overflow-hidden rounded-3xl border-2 border-dashed transition-all duration-500
           ${isDragging
@@ -110,6 +111,7 @@ export default function DocumentUploader({ onUploadComplete }: DocumentUploaderP
                 onDrop={handleDrop}
             >
                 <input
+                    data-testid="file-input"
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileSelect}
@@ -185,6 +187,7 @@ export default function DocumentUploader({ onUploadComplete }: DocumentUploaderP
                     {/* Button */}
                     {!isUploading && uploadProgress === 0 && (
                         <button
+                            data-testid="select-file-button"
                             onClick={() => fileInputRef.current?.click()}
                             className="px-8 py-4 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-semibold shadow-lg shadow-primary/50 hover:shadow-xl hover:shadow-primary/60 hover:scale-105 transition-all duration-300 flex items-center gap-2"
                         >
@@ -197,7 +200,7 @@ export default function DocumentUploader({ onUploadComplete }: DocumentUploaderP
                 {/* Error Message */}
                 {error && (
                     <div className="absolute bottom-6 left-6 right-6 animate-in slide-in-from-bottom duration-300">
-                        <div className="p-4 rounded-2xl bg-red-500/10 backdrop-blur-xl border border-red-500/20 text-red-400 flex items-start gap-3">
+                        <div data-testid="upload-error" className="p-4 rounded-2xl bg-red-500/10 backdrop-blur-xl border border-red-500/20 text-red-400 flex items-start gap-3">
                             <X className="w-5 h-5 flex-shrink-0 mt-0.5" />
                             <p className="text-sm leading-relaxed">{error}</p>
                         </div>
