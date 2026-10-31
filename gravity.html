@@ -1,0 +1,872 @@
+<title>Gravity</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one-screen app. Sticky header with net value, scrollable main, fixed bottom tab bar. Dark-first terminal. */
+:root{
+  --bg:#0b0f14; --panel:#121923; --panel-2:#182230; --line:#243040;
+  --fg:#e7edf3; --muted:#8a9bb0; --faint:#5c6b7e;
+  --accent:#f2b544; --accent-ink:#1a1206;
+  --up:#3fcf8e; --down:#ff6b6b; --warn:#f2b544;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:10px; --tabbar:62px;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f3f5f8; --panel:#ffffff; --panel-2:#eef1f5; --line:#d9dfe7;
+    --fg:#131a23; --muted:#5a6878; --faint:#8794a3;
+    --accent:#b4771a; --accent-ink:#ffffff;
+    --up:#15965f; --down:#d8404a; --warn:#b4771a;
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f3f5f8; --panel:#ffffff; --panel-2:#eef1f5; --line:#d9dfe7;
+  --fg:#131a23; --muted:#5a6878; --faint:#8794a3;
+  --accent:#b4771a; --accent-ink:#ffffff;
+  --up:#15965f; --down:#d8404a; --warn:#b4771a;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.45;overflow:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--accent)}
+.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.up{color:var(--up)} .down{color:var(--down)} .muted{color:var(--muted)}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+
+#app{height:100%;display:flex;flex-direction:column}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.brand{font-family:var(--font-display);font-weight:600;font-size:20px;letter-spacing:.02em}
+.brand small{font-family:var(--font-body);font-weight:400;font-size:12px;color:var(--muted);margin-left:8px}
+.nav-big{font-family:var(--font-mono);font-size:22px;font-weight:500;letter-spacing:-.01em}
+.nav-sub{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:2px}
+.fresh{font-size:11px;color:var(--faint)}
+.fresh.stale{color:var(--warn)}
+
+main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-block:14px calc(var(--tabbar) + env(safe-area-inset-bottom,0px) + 14px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+section.view{display:flex;flex-direction:column;gap:14px;max-width:960px;margin:0 auto}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--panel);border-top:1px solid var(--line);
+  display:flex;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+nav.tabs button{flex:1;height:var(--tabbar);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.02em}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button[aria-current="page"]{color:var(--accent)}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+.panel h2{font-family:var(--font-display);font-size:15px;font-weight:600;margin:0 0 8px;letter-spacing:.01em;text-wrap:balance}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;min-width:0}
+.tile .v{font-family:var(--font-mono);font-size:18px;font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .s{font-size:12px;color:var(--muted);margin-top:2px}
+.spark-wrap{display:flex;flex-direction:column;gap:8px}
+.spark-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--panel-2);border-radius:8px;padding:2px;gap:2px}
+.seg button{padding:4px 10px;border-radius:6px;font-size:12px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.25)}
+canvas.spark{width:100%;height:110px;display:block;max-width:100%}
+
+table.pos{width:100%;border-collapse:collapse;font-size:13px}
+table.pos th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+table.pos th:first-child,table.pos td:first-child{text-align:left}
+table.pos td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;white-space:nowrap}
+table.pos tr.row{cursor:pointer}
+table.pos tr.row:hover td{background:var(--panel-2)}
+table.pos td.sym{font-weight:600;white-space:normal;min-width:0}
+table.pos td.sym small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+table.pos tr.detail td{background:var(--panel-2);text-align:left;white-space:normal;font-size:12px;color:var(--muted)}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px 12px;margin-bottom:8px}
+.detail-grid b{display:block;color:var(--fg);font-family:var(--font-mono);font-weight:500}
+.tbl-wrap{overflow-x:auto;margin:0 -14px;padding:0 14px}
+.bars{display:flex;flex-direction:column;gap:6px}
+.bar{display:grid;grid-template-columns:48px 1fr 80px;align-items:center;gap:8px;font-size:12px}
+.bar i{display:block;height:8px;border-radius:4px;background:var(--accent);opacity:.85}
+.bar .num{text-align:right}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:13px}
+.btn.ghost{background:var(--panel-2);color:var(--fg);font-weight:500}
+.btn:disabled{opacity:.5;cursor:default}
+.chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);font-size:12px;color:var(--fg);white-space:nowrap}
+.chip.on{border-color:var(--accent);color:var(--accent)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.state{padding:12px 14px;border-radius:var(--radius);background:var(--panel-2);color:var(--muted);font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.state.err{border-left:3px solid var(--down)}
+.state.warn{border-left:3px solid var(--warn)}
+.skel{background:linear-gradient(90deg,var(--panel-2),var(--panel),var(--panel-2));background-size:200% 100%;animation:sh 1.4s infinite;border-radius:6px;height:14px}
+@keyframes sh{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){.skel{animation:none}}
+
+/* Chat */
+.chat{display:flex;flex-direction:column;gap:10px;min-height:calc(100% - 2px)}
+.msgs{display:flex;flex-direction:column;gap:10px}
+.msg{max-width:92%;padding:10px 12px;border-radius:14px;font-size:14px;min-width:0;overflow-wrap:anywhere}
+.msg.user{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.bot .md p{margin:0 0 8px} .msg.bot .md p:last-child{margin:0}
+.msg.bot .md h1,.msg.bot .md h2,.msg.bot .md h3{font-family:var(--font-display);font-size:15px;margin:10px 0 6px}
+.msg.bot .md ul,.msg.bot .md ol{margin:4px 0 8px;padding-left:20px}
+.msg.bot .md table{border-collapse:collapse;font-size:12px;margin:6px 0;display:block;overflow-x:auto;max-width:100%}
+.msg.bot .md th,.msg.bot .md td{border:1px solid var(--line);padding:4px 6px;text-align:right;white-space:nowrap;font-family:var(--font-mono)}
+.msg.bot .md th:first-child,.msg.bot .md td:first-child{text-align:left;font-family:var(--font-body)}
+.msg.bot .md code{font-family:var(--font-mono);font-size:12px;background:var(--panel-2);padding:1px 4px;border-radius:4px}
+.msg.bot .md pre{overflow-x:auto;background:var(--panel-2);padding:8px;border-radius:6px}
+.msg .tools{font-size:11px;color:var(--faint);margin-top:6px;display:flex;gap:4px;flex-wrap:wrap}
+.msg .tools span{background:var(--panel-2);padding:2px 6px;border-radius:4px}
+.msg.err{align-self:flex-start;background:transparent;border:1px dashed var(--down);color:var(--down);font-size:13px}
+.thinking{display:inline-flex;gap:4px;align-items:center;color:var(--muted);font-size:13px}
+.thinking i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:bl 1.2s infinite}
+.thinking i:nth-child(2){animation-delay:.2s}.thinking i:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.composer{position:sticky;bottom:0;background:var(--bg);padding-top:6px;display:flex;flex-direction:column;gap:8px}
+.composer-row{display:flex;gap:8px;align-items:flex-end}
+.composer textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:12px;padding:10px 12px;font:inherit;font-size:14px;max-height:140px;line-height:1.35}
+.composer .send{width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);flex:none}
+.composer .send svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.composer .send.stop{background:var(--down);color:#fff}
+.composer-meta{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+
+/* Lists (insiders, news) */
+.list{display:flex;flex-direction:column}
+.item{padding:10px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:4px 10px;min-width:0}
+.item:last-child{border-bottom:0}
+.item .t{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.item .m{font-size:12px;color:var(--muted);grid-column:1/-1;min-width:0;overflow-wrap:anywhere}
+.item .r{text-align:right;font-family:var(--font-mono);font-size:12px;white-space:nowrap}
+.item .es{grid-column:1/-1;font-size:13px;color:var(--fg);background:var(--panel-2);padding:8px 10px;border-radius:8px;margin-top:2px}
+.tag{display:inline-block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:4px;background:var(--panel-2);color:var(--muted);margin-right:6px;vertical-align:middle}
+.tag.buy{background:color-mix(in srgb,var(--up) 18%,transparent);color:var(--up)}
+.tag.sell{background:color-mix(in srgb,var(--down) 18%,transparent);color:var(--down)}
+.row-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.sym-input{display:flex;gap:6px}
+.sym-input input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:8px 10px;font:inherit;font-size:14px;text-transform:uppercase}
+.summary-md p{margin:0 0 8px} .summary-md p:last-child{margin:0} .summary-md ul{margin:4px 0;padding-left:18px}
+
+/* Sheet */
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
+.sheet .card{background:var(--panel);width:100%;max-width:640px;border-radius:16px 16px 0 0;max-height:85%;overflow-y:auto;
+  padding-block:16px calc(env(safe-area-inset-bottom,0px) + 16px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sheet h3{font-family:var(--font-display);margin:0 0 8px;font-size:17px}
+.sheet ol{padding-left:20px;margin:6px 0 12px;color:var(--muted);font-size:14px}
+.sheet p{margin:6px 0;font-size:14px;color:var(--muted)}
+.icon-btn{width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted)}
+.icon-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (min-width:720px){ .tile .v{font-size:20px} .msg{max-width:80%} }
+</style>
+
+<div id="app">
+  <header class="top">
+    <div class="top-row">
+      <div class="brand">Gravity <small>IB · FMP · EDGAR</small></div>
+      <button class="icon-btn" id="btn-info" aria-label="Instalar y fuentes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+    </div>
+    <div class="nav-big num" id="h-nav">—</div>
+    <div class="nav-sub">
+      <span id="h-day" class="num">Día —</span>
+      <span id="h-mtd" class="num">Mes —</span>
+      <span class="fresh" id="h-fresh">Conectando con Interactive Brokers…</span>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- CARTERA -->
+    <section class="view" id="view-cartera">
+      <div id="cartera-state"></div>
+      <div class="tiles" id="tiles">
+        <div class="tile"><div class="eyebrow">P&amp;L del día</div><div class="v num skel"></div><div class="s">todas las posiciones, en USD</div></div>
+        <div class="tile"><div class="eyebrow">No realizado</div><div class="v num skel"></div><div class="s">sobre costo promedio</div></div>
+        <div class="tile"><div class="eyebrow">Efectivo</div><div class="v num skel"></div><div class="s">total en USD</div></div>
+        <div class="tile"><div class="eyebrow">Margen usado</div><div class="v num skel"></div><div class="s">mantenimiento / valor neto</div></div>
+      </div>
+      <div class="panel spark-wrap">
+        <div class="spark-head">
+          <div><h2 style="margin:0">Evolución del valor neto</h2><div class="muted" id="spark-sub" style="font-size:12px">Rendimiento ponderado por tiempo (TWR), moneda base USD</div></div>
+          <div class="seg" id="spark-seg" role="group" aria-label="Período">
+            <button data-p="7D" aria-pressed="false">7D</button><button data-p="MTD" aria-pressed="true">Mes</button><button data-p="YTD" aria-pressed="false">Año</button><button data-p="1Y" aria-pressed="false">1A</button>
+          </div>
+        </div>
+        <canvas class="spark" id="spark" aria-label="Gráfico de valor neto"></canvas>
+        <div class="muted num" id="spark-foot" style="font-size:12px">—</div>
+      </div>
+      <div class="panel">
+        <div class="row-head"><h2 style="margin:0">Acciones y ETFs</h2><span class="muted" id="cnt-stk" style="font-size:12px"></span></div>
+        <div class="tbl-wrap"><table class="pos" id="tbl-stk"><thead><tr><th>Activo</th><th>Cant.</th><th>Precio</th><th>Valor USD</th><th>P&amp;L</th><th>Día</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="panel">
+        <div class="row-head"><h2 style="margin:0">Opciones</h2><span class="muted" id="cnt-opt" style="font-size:12px"></span></div>
+        <div class="tbl-wrap"><table class="pos" id="tbl-opt"><thead><tr><th>Contrato</th><th>Cant.</th><th>Precio</th><th>Valor USD</th><th>P&amp;L</th><th>Día</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="panel" id="panel-crypto" hidden>
+        <div class="row-head"><h2 style="margin:0">Cripto</h2></div>
+        <div class="tbl-wrap"><table class="pos" id="tbl-crypto"><thead><tr><th>Activo</th><th>Cant.</th><th>Precio</th><th>Valor USD</th><th>P&amp;L</th><th>Día</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="panel">
+        <h2>Exposición por moneda</h2>
+        <div class="muted" style="font-size:12px;margin-bottom:8px">Valor neto por divisa convertido a USD con el tipo de cambio de IB</div>
+        <div class="bars" id="bars-ccy"></div>
+      </div>
+      <div class="panel">
+        <h2>Cuenta</h2>
+        <div class="detail-grid" id="acct-grid"></div>
+      </div>
+    </section>
+
+    <!-- CHAT -->
+    <section class="view chat" id="view-chat" hidden>
+      <div id="chat-state"></div>
+      <div class="msgs" id="msgs">
+        <div class="msg bot"><div class="md"><p><b>Analista de valor.</b> Pregunto a Interactive Brokers, FMP y EDGAR en vivo antes de responder. Puedo buscar empresas de calidad con descuento, evaluar una acción con criterios de valor, revisar qué hacen los insiders o analizar tu cartera.</p><p class="muted" style="font-size:12px">Cada respuesta cita la fuente y la fecha del dato. Si un dato no está en esas fuentes, lo digo en vez de inventarlo.</p></div></div>
+      </div>
+      <div class="composer">
+        <div class="chips" id="suggest">
+          <button class="chip" data-q="Buscá empresas de calidad que coticen con descuento en Estados Unidos. Filtrá por ROIC alto, deuda baja y rendimiento de flujo de caja libre atractivo, y mostrame una tabla con las 5 mejores.">Calidad con descuento (EE.UU.)</button>
+          <button class="chip" data-q="Evaluá mi cartera: concentración, calidad de las empresas que tengo y cuáles están más baratas hoy según sus múltiplos.">Evaluá mi cartera</button>
+          <button class="chip" data-q="¿Qué compras y ventas de insiders hubo en mis posiciones de Estados Unidos en los últimos meses? Resumí en español.">Insiders de mis posiciones</button>
+          <button class="chip" data-q="Analizá POOL con criterios de valor: calidad del negocio, múltiplos actuales vs. su historia, DCF de FMP y señales de insiders.">Analizá POOL</button>
+        </div>
+        <div class="composer-row">
+          <textarea id="chat-input" rows="1" placeholder="Preguntá sobre acciones, valor, tu cartera…" aria-label="Mensaje"></textarea>
+          <button class="send" id="btn-send" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+        <div class="composer-meta">
+          <div class="seg" id="tier-seg" role="group" aria-label="Profundidad">
+            <button data-t="quick" aria-pressed="false">Rápido</button><button data-t="default" aria-pressed="true">Normal</button><button data-t="complex" aria-pressed="false">Profundo</button>
+          </div>
+          <button class="chip" id="btn-clear">Nueva conversación</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- INSIDERS -->
+    <section class="view" id="view-insiders" hidden>
+      <div class="panel">
+        <div class="row-head"><h2 style="margin:0">Insiders de mis posiciones</h2><button class="btn ghost" id="btn-ins-sum">Resumir en español</button></div>
+        <div class="muted" style="font-size:12px;margin-bottom:6px">Formularios 4 presentados en la SEC por directivos de tus acciones de EE.UU. Fuente: FMP sobre EDGAR.</div>
+        <div id="ins-mine" class="list"><div class="state">Abrí esta pestaña para cargar los datos.</div></div>
+        <div id="ins-mine-sum" class="summary-md" hidden></div>
+      </div>
+      <div class="panel">
+        <div class="row-head"><h2 style="margin:0">Compras de insiders en el mercado</h2><span class="muted" id="ins-mkt-fresh" style="font-size:12px"></span></div>
+        <div class="muted" style="font-size:12px;margin-bottom:6px">Últimas compras en mercado abierto (código P) declaradas en la SEC. Las compras con dinero propio son la señal más fuerte; las ventas suelen tener muchas explicaciones.</div>
+        <div id="ins-mkt" class="list"></div>
+      </div>
+    </section>
+
+    <!-- NOTICIAS -->
+    <section class="view" id="view-noticias" hidden>
+      <div class="panel">
+        <div class="row-head"><h2 style="margin:0">Noticias de mis posiciones</h2><button class="btn ghost" id="btn-news-es">Traducir y resumir</button></div>
+        <div class="sym-input" style="margin-bottom:8px"><input id="news-sym" placeholder="Agregar símbolo (ej. MSFT, RMS.PA)" aria-label="Símbolo"><button class="btn ghost" id="btn-news-add">Buscar</button></div>
+        <div class="chips" id="news-syms" style="margin-bottom:8px"></div>
+        <div id="news-list" class="list"><div class="state">Abrí esta pestaña para cargar las noticias.</div></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs" aria-label="Secciones">
+    <button data-tab="cartera" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 4-6 5 4"/><path d="M3 21h18"/></svg>Cartera</button>
+    <button data-tab="chat"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>Chat</button>
+    <button data-tab="insiders"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Insiders</button>
+    <button data-tab="noticias"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/></svg>Noticias</button>
+  </nav>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="card">
+    <div class="row-head"><h3 style="margin:0">Gravity en tu celular</h3><button class="icon-btn" id="sheet-close" aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <p><b>Android (Chrome):</b></p>
+    <ol><li>Abrí este enlace en Chrome con tu sesión de claude.ai iniciada.</li><li>Tocá el menú ⋮ arriba a la derecha.</li><li>Elegí “Agregar a pantalla de inicio” y confirmá.</li></ol>
+    <p><b>iPhone (Safari):</b></p>
+    <ol><li>Abrí el enlace en Safari.</li><li>Tocá el botón Compartir.</li><li>Elegí “Agregar a inicio”.</li></ol>
+    <h3>Fuentes y permisos</h3>
+    <p>La página pide permiso una sola vez para usar tus conectores de Interactive Brokers y FMP, y para consultar a Claude desde el chat. Las credenciales nunca pasan por esta página: cada llamada la hace claude.ai con tu sesión.</p>
+    <p>Los datos de cuenta se refrescan cada minuto mientras la pestaña está visible. Precios y métricas de FMP se consultan al momento en cada pregunta del chat.</p>
+    <p>Para actualizar precios a mano, tocá el valor neto en el encabezado.</p>
+    <p class="muted" id="sheet-diag" style="font-size:12px"></p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
+<script>
+(function(){
+"use strict";
+const IB = "Interactive_Brokers_IBKR";
+const FMP = "FMP";
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+const S = {
+  mcp:null, sample:null, sampleLimits:null,
+  positions:[], summary:null, balances:[], perf:null, rates:{USD:1, BASE:1},
+  stored:{}, tier:"default", period:"MTD",
+  turns:[], busy:false, ctl:null,
+  insidersLoaded:false, newsLoaded:false, newsSyms:[], extraSyms:[],
+  ibErr:null
+};
+
+/* ---------- formatting ---------- */
+const fmtUsd = (v, d=0) => (v==null||isNaN(v)) ? "—" : new Intl.NumberFormat("es-UY",{style:"currency",currency:"USD",maximumFractionDigits:d,minimumFractionDigits:d}).format(v);
+const fmtNum = (v, d=2) => (v==null||isNaN(v)) ? "—" : new Intl.NumberFormat("es-UY",{maximumFractionDigits:d,minimumFractionDigits:0}).format(v);
+const fmtPct = (v, d=1) => (v==null||isNaN(v)) ? "—" : (v>0?"+":"") + new Intl.NumberFormat("es-UY",{maximumFractionDigits:d,minimumFractionDigits:d}).format(v*100) + " %";
+const fmtSigned = (v) => (v==null||isNaN(v)) ? "—" : (v>0?"+":"") + fmtUsd(v);
+const cls = v => v>0 ? "up" : v<0 ? "down" : "";
+const hhmm = ts => new Date(ts).toLocaleTimeString("es-UY",{hour:"2-digit",minute:"2-digit"});
+const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const compact = v => (v==null||isNaN(v)) ? "—" : Math.abs(v)>=1e12 ? (v/1e12).toFixed(2)+" B" : Math.abs(v)>=1e9 ? (v/1e9).toFixed(1)+" mM" : Math.abs(v)>=1e6 ? (v/1e6).toFixed(0)+" M" : fmtNum(v,0);
+const r2 = v => (v==null||isNaN(v)) ? null : Math.round(v*100)/100;
+const r4 = v => (v==null||isNaN(v)) ? null : Math.round(v*10000)/10000;
+
+function renderMd(el, md){
+  try{
+    if(window.marked && window.DOMPurify){ el.innerHTML = DOMPurify.sanitize(marked.parse(md, {gfm:true, breaks:true})); return; }
+  }catch(e){}
+  el.textContent = md;
+}
+
+/* ---------- connector error copy ---------- */
+function errCopy(e, server){
+  const s = server || e?.server || "el conector";
+  const code = e?.code || "upstream_error";
+  switch(code){
+    case "needs_reauth": return `La sesión de ${s} venció. Reconectalo en claude.ai → Configuración → Conectores y recargá.`;
+    case "server_not_connected": return `No encontré el conector ${s} en tu cuenta. Agregalo en claude.ai → Configuración → Conectores.`;
+    case "selection_required": return `Tenés más de un conector llamado ${s}. Elegí uno cuando claude.ai lo pregunte.`;
+    case "not_in_manifest": return `No autorizaste ${s} para esta página. Podés habilitarlo desde el menú de permisos del artefacto.`;
+    case "blocked_by_policy": return `Tu organización bloquea ${s} para esta página.`;
+    case "approval_required": return `Falta tu aprobación para consultar ${s}.`;
+    case "server_unavailable": return `${s} no respondió a tiempo. Reintento en unos segundos.`;
+    case "tool_error": return `${s} devolvió un error: ${e?.message || "sin detalle"}.`;
+    case "not_granted": case "capability_disabled": case "capability_removed": return "Esta vista no tiene acceso a conectores.";
+    case "consent_required": return `Todavía no permitiste ${s} para esta página.`;
+    default: return `Error con ${s}: ${e?.message || code}.`;
+  }
+}
+function stateBox(host, text, kind, retry){
+  host.innerHTML = "";
+  const d = document.createElement("div"); d.className = "state" + (kind?" "+kind:"");
+  d.append(document.createTextNode(text));
+  if(retry){ const b=document.createElement("button"); b.className="btn ghost"; b.textContent=retry.label||"Reintentar"; b.onclick=retry.fn; d.append(b); }
+  host.append(d);
+}
+
+/* ---------- positions model ---------- */
+const SUFFIX = {SBF:".PA", MONEP:".PA", SEHK:".HK", TSEJ:".T", TSE:".TO", AEB:".AS", EBS:".SW", ASX:".AX", KRX:".KS", IBIS:".DE", IBIS2:".DE", LSE:".L", LSEETF:".L"};
+function parsePos(p){
+  const d = String(p.contract_description||"");
+  const at = d.lastIndexOf(" @");
+  const descr = at>=0 ? d.slice(0,at) : d;
+  const exch = at>=0 ? d.slice(at+2).trim() : (p.asset_class==="CRYPTO" ? "" : "US");
+  const symbol = descr.trim().split(/\s+/)[0] || "?";
+  const m = descr.match(/([A-Z][a-z]{2}\d{1,2}'\d{2})\s+([\d.]+)\s+(PUT|CALL)/);
+  const rate = S.rates[p.currency] ?? (p.currency==="USD"?1:null);
+  const usd = rate==null ? null : (p.market_value||0)*rate;
+  const kind = p.asset_class==="OPT" ? "opt" : p.asset_class==="CRYPTO" ? "crypto" : "stk";
+  let fmp = symbol;
+  if(kind==="stk" && exch!=="US"){ const suf = SUFFIX[exch]; if(suf){ fmp = (exch==="SEHK" ? symbol.padStart(4,"0") : symbol) + suf; } else fmp = null; }
+  if(kind!=="stk") fmp = null;
+  const costUsd = rate==null ? null : Math.abs(p.position||0) * (p.average_price||0) * (kind==="opt" ? 100 : 1) * rate;
+  return {
+    ...p, symbol, exch, kind, usd,
+    opt: m ? {expiry:m[1], strike:+m[2], type:m[3]} : null,
+    upnlUsd: rate==null ? null : (p.unrealized_pnl||0)*rate,
+    dpnlUsd: rate==null ? null : (p.daily_pnl||0)*rate,
+    upnlPct: (p.average_price && p.position) ? (p.market_price - p.average_price)/p.average_price * (p.position<0?-1:1) : null,
+    fmp, isUS: kind==="stk" && exch==="US", costUsd
+  };
+}
+function applyRates(){
+  S.rates = {USD:1, BASE:1};
+  for(const b of S.balances||[]) if(b.currency && b.exchange_rate) S.rates[b.currency] = b.exchange_rate;
+}
+
+/* ---------- header + tiles ---------- */
+function renderHeader(){
+  const nav = S.summary?.net_liquidation;
+  $("#h-nav").textContent = nav!=null ? fmtUsd(nav) : "—";
+  const live = S.positions.filter(p=>p.usd!=null);
+  const day = S.positions.length ? S.positions.reduce((a,p)=>a+(p.dpnlUsd||0),0) : null;
+  const dayEl = $("#h-day"); dayEl.textContent = day==null ? "Día —" : "Día " + fmtSigned(day) + (nav ? " ("+fmtPct(day/nav)+")" : ""); dayEl.className = "num " + cls(day);
+  const mtd = S.perf?.accounts?.account?.periods?.MTD?.cps; const mtdV = mtd && mtd.length ? mtd[mtd.length-1] : null;
+  const mEl = $("#h-mtd"); mEl.textContent = mtdV==null ? "Mes —" : "Mes " + fmtPct(mtdV); mEl.className = "num " + cls(mtdV);
+  const ts = Math.max(...Object.values(S.stored).filter(Boolean), 0);
+  const f = $("#h-fresh");
+  if(S.ibErr){ f.textContent = "IB: " + errCopy(S.ibErr, "Interactive Brokers"); f.className="fresh stale"; }
+  else if(ts){ const age = Date.now()-ts; f.textContent = "Actualizado " + hhmm(ts); f.className = "fresh" + (age>5*60000?" stale":""); }
+  else { f.textContent = "Conectando con Interactive Brokers…"; f.className="fresh"; }
+  void live;
+}
+function renderTiles(){
+  const t = $$("#tiles .tile");
+  const nav = S.summary?.net_liquidation;
+  const day = S.positions.length ? S.positions.reduce((a,p)=>a+(p.dpnlUsd||0),0) : null;
+  const base = (S.balances||[]).find(b=>b.currency==="BASE");
+  const unreal = base ? base.unrealized_pnl : (S.positions.length ? S.positions.reduce((a,p)=>a+(p.upnlUsd||0),0) : null);
+  const cash = S.summary?.total_cash_value;
+  const mu = (S.summary?.maintenance_margin!=null && nav) ? S.summary.maintenance_margin/nav : null;
+  const set = (i, v, c) => { const el = t[i].querySelector(".v"); el.classList.remove("skel"); el.textContent = v; el.className = "v num " + (c||""); };
+  set(0, fmtSigned(day), cls(day));
+  set(1, fmtSigned(unreal), cls(unreal));
+  set(2, fmtUsd(cash));
+  set(3, mu==null ? "—" : fmtNum(mu*100,1)+" %", mu>0.5?"down":mu>0.35?"":"");
+  t[3].querySelector(".s").textContent = S.summary?.leverage ? `apalancamiento ${S.summary.leverage}×` : "mantenimiento / valor neto";
+}
+
+/* ---------- sparkline ---------- */
+function drawSpark(){
+  const c = $("#spark"); const per = S.perf?.accounts?.account?.periods?.[S.period];
+  const foot = $("#spark-foot");
+  const dpr = window.devicePixelRatio||1; const W = c.clientWidth||320, H = 110;
+  c.width = W*dpr; c.height = H*dpr; const ctx = c.getContext("2d"); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+  if(!per || !per.nav || per.nav.length<2){ foot.textContent = per ? "Serie muy corta para graficar." : "Sin datos de rendimiento todavía."; return; }
+  const nav = per.nav.map(Number), n = nav.length;
+  const mn = Math.min(...nav), mx = Math.max(...nav), pad = 8;
+  const x = i => pad + i*(W-2*pad)/(n-1), y = v => H-pad - (mx===mn?0.5:(v-mn)/(mx-mn))*(H-2*pad);
+  const css = getComputedStyle(document.documentElement);
+  const last = per.cps[per.cps.length-1]; const col = css.getPropertyValue(last>=0?"--up":"--down").trim(); const line = css.getPropertyValue("--line").trim();
+  ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.setLineDash([3,4]);
+  for(const g of [0.25,0.5,0.75]){ ctx.beginPath(); ctx.moveTo(pad, pad+g*(H-2*pad)); ctx.lineTo(W-pad, pad+g*(H-2*pad)); ctx.stroke(); }
+  ctx.setLineDash([]);
+  const grad = ctx.createLinearGradient(0,0,0,H); grad.addColorStop(0, col+"55"); grad.addColorStop(1, col+"00");
+  ctx.beginPath(); ctx.moveTo(x(0), y(nav[0])); for(let i=1;i<n;i++) ctx.lineTo(x(i), y(nav[i])); ctx.lineTo(x(n-1), H-pad); ctx.lineTo(x(0), H-pad); ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x(0), y(nav[0])); for(let i=1;i<n;i++) ctx.lineTo(x(i), y(nav[i])); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x(n-1), y(nav[n-1]), 3.5, 0, Math.PI*2); ctx.fillStyle = col; ctx.fill();
+  const d0 = per.dates[0], d1 = per.dates[per.dates.length-1];
+  const fd = s => s ? `${s.slice(6,8)}/${s.slice(4,6)}` : "";
+  foot.innerHTML = `<span class="${cls(last)}">${esc(fmtPct(last,2))}</span> · ${esc(fd(d0))} → ${esc(fd(d1))} · mín ${esc(fmtUsd(mn))} · máx ${esc(fmtUsd(mx))}`;
+  $("#spark-sub").textContent = `Rendimiento ${S.perf?.portfolio_measure==="MWR"?"ponderado por dinero (MWR)":"ponderado por tiempo (TWR)"}, moneda base USD`;
+}
+
+/* ---------- positions tables ---------- */
+function posRow(p){
+  const tr = document.createElement("tr"); tr.className = "row"; tr.tabIndex = 0;
+  const name = p.kind==="opt" ? `${p.symbol} ${p.opt?p.opt.type==="PUT"?"PUT":"CALL":""} ${p.opt?fmtNum(p.opt.strike):""}` : p.symbol;
+  const sub = p.kind==="opt" ? `vence ${p.opt?.expiry||""} · ${p.exch}` : (p.exch==="US" ? (p.currency||"USD") : `${p.exch} · ${p.currency}`);
+  tr.innerHTML = `<td class="sym">${esc(name)}<small>${esc(sub)}</small></td>
+    <td class="num">${esc(fmtNum(p.position, p.kind==="crypto"?4:0))}</td>
+    <td class="num">${esc(fmtNum(p.market_price, p.market_price<10?3:2))}</td>
+    <td class="num">${esc(fmtUsd(p.usd))}</td>
+    <td class="num ${cls(p.unrealized_pnl)}">${esc(p.kind==="opt" ? fmtSigned(p.upnlUsd) : fmtPct(p.upnlPct))}</td>
+    <td class="num ${cls(p.daily_pnl)}">${esc(fmtSigned(p.dpnlUsd))}</td>`;
+  const det = document.createElement("tr"); det.className = "detail"; det.hidden = true;
+  const td = document.createElement("td"); td.colSpan = 6;
+  td.innerHTML = `<div class="detail-grid">
+      <div>Costo promedio<b>${esc(fmtNum(p.average_price, 2))} ${esc(p.currency)}</b></div>
+      <div>Valor en ${esc(p.currency)}<b>${esc(fmtNum(p.market_value,0))}</b></div>
+      <div>P&amp;L no realizado<b class="${cls(p.unrealized_pnl)}">${esc(fmtSigned(p.upnlUsd))}</b></div>
+      <div>Costo total USD<b>${esc(fmtUsd(p.costUsd))}</b></div>
+      <div>Contrato IB<b>${esc(p.contract_id)}</b></div>
+      ${p.fmp ? `<div>Símbolo FMP<b>${esc(p.fmp)}</b></div>` : ""}
+    </div>
+    <div class="chips"></div>`;
+  const chips = td.querySelector(".chips");
+  const ask = (label, q) => { const b=document.createElement("button"); b.className="chip"; b.textContent=label; b.onclick=(ev)=>{ev.stopPropagation(); askInChat(q);}; chips.append(b); };
+  const sym = p.fmp || p.symbol;
+  if(p.kind==="stk" && p.fmp) ask("Analizar con criterios de valor", `Analizá ${sym} con criterios de valor: calidad del negocio, múltiplos actuales, DCF de FMP y qué dicen los insiders. Tengo ${fmtNum(p.position,0)} acciones a costo promedio ${fmtNum(p.average_price,2)} ${p.currency}.`);
+  if(p.isUS) ask("Insiders y noticias", `¿Qué hicieron los insiders de ${sym} últimamente y qué noticias relevantes hubo? Resumí en español con fechas.`);
+  if(p.kind==="opt") ask("Explicar esta opción", `Explicame mi posición en ${name} (vence ${p.opt?.expiry}, ${p.position<0?"vendida":"comprada"}, ${Math.abs(p.position)} contratos): qué riesgo tengo, qué pasa si el subyacente sube o baja, y cómo se relaciona con mis acciones de ${p.symbol} si las tengo.`);
+  det.append(td);
+  tr.onclick = () => { det.hidden = !det.hidden; };
+  tr.onkeydown = e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); det.hidden=!det.hidden; } };
+  return [tr, det];
+}
+function renderPositions(){
+  const live = S.positions.filter(p => p.position);
+  const closed = S.positions.length - live.length;
+  const groups = {stk:[], opt:[], crypto:[]};
+  for(const p of live) groups[p.kind].push(p);
+  for(const k of Object.keys(groups)) groups[k].sort((a,b)=>Math.abs(b.usd||0)-Math.abs(a.usd||0));
+  const fill = (sel, arr) => { const tb = $(sel+" tbody"); tb.innerHTML=""; for(const p of arr) tb.append(...posRow(p)); };
+  fill("#tbl-stk", groups.stk); fill("#tbl-opt", groups.opt); fill("#tbl-crypto", groups.crypto);
+  $("#panel-crypto").hidden = groups.crypto.length===0;
+  const sum = arr => arr.reduce((a,p)=>a+(p.usd||0),0);
+  $("#cnt-stk").textContent = groups.stk.length ? `${groups.stk.length} · ${fmtUsd(sum(groups.stk))}` : "sin posiciones";
+  $("#cnt-opt").textContent = groups.opt.length ? `${groups.opt.length} contratos · neto ${fmtUsd(sum(groups.opt))}` + (closed?` · ${closed} cerrada${closed>1?"s":""} hoy`:"") : "sin opciones";
+}
+function renderCcy(){
+  const host = $("#bars-ccy"); host.innerHTML = "";
+  const rows = (S.balances||[]).filter(b=>b.currency!=="BASE").map(b=>({c:b.currency, usd:(b.net_liquidation_value||0)*(b.exchange_rate||0)})).filter(r=>Math.abs(r.usd)>1).sort((a,b)=>b.usd-a.usd);
+  const tot = rows.reduce((a,r)=>a+Math.max(r.usd,0),0) || 1;
+  for(const r of rows){
+    const d = document.createElement("div"); d.className="bar";
+    d.innerHTML = `<span>${esc(r.c)}</span><i style="width:${Math.max(2, r.usd/tot*100)}%"></i><span class="num">${esc(fmtUsd(r.usd))}</span>`;
+    host.append(d);
+  }
+  if(!rows.length) host.innerHTML = `<div class="skel"></div>`;
+}
+function renderAcct(){
+  const s = S.summary; const g = $("#acct-grid"); if(!s){ g.innerHTML = `<div class="skel"></div><div class="skel"></div>`; return; }
+  const items = [["Valor neto", fmtUsd(s.net_liquidation)],["Poder de compra", fmtUsd(s.buying_power)],["Fondos disponibles", fmtUsd(s.available_funds)],["Liquidez excedente", fmtUsd(s.excess_liquidity)],["Margen inicial", fmtUsd(s.initial_margin)],["Margen de mantenimiento", fmtUsd(s.maintenance_margin)],["Valor bruto posiciones", fmtUsd(s.gross_position_value)],["Dividendos acumulados", fmtUsd(s.dividends)]];
+  g.innerHTML = items.map(([k,v])=>`<div>${esc(k)}<b>${esc(v)}</b></div>`).join("");
+}
+function renderAll(){ renderHeader(); renderTiles(); renderPositions(); renderCcy(); renderAcct(); drawSpark(); }
+
+/* ---------- IB watches ---------- */
+function watchIB(){
+  const mcp = S.mcp; if(!mcp) return;
+  const onErr = (what) => (e) => {
+    S.ibErr = e;
+    if(["needs_reauth","server_not_connected","not_in_manifest","blocked_by_policy","approval_required","consent_required"].includes(e.code)){
+      stateBox($("#cartera-state"), errCopy(e, "Interactive Brokers"), "err", e.code==="approval_required"||e.code==="consent_required" ? {label:"Permitir y cargar", fn:loadIBOnce} : null);
+    } else { stateBox($("#cartera-state"), errCopy(e, "Interactive Brokers") + " Se muestran los últimos datos recibidos.", "warn"); }
+    renderHeader();
+  };
+  const ok = (key, fn) => (ev) => {
+    if(ev.type==="error"){ onErr(key)(ev.error); return; }
+    S.ibErr = null; $("#cartera-state").innerHTML = "";
+    S.stored[key] = ev.result.cache?.storedAt || Date.now();
+    fn(ev.result.payload);
+    renderAll();
+  };
+  const opts = {refetchInterval:60000, cache:{staleTime:20000, gcTime:3600000}};
+  mcp.watchTool(IB, "get_account_balances", null, ok("bal", p => { S.balances = p?.balances || []; applyRates(); S.positions = S.positions.map(x => parsePos(x)); }), opts);
+  mcp.watchTool(IB, "get_account_positions", null, ok("pos", p => { S.positions = (p?.positions || []).map(parsePos); }), opts);
+  mcp.watchTool(IB, "get_account_summary", null, ok("sum", p => { S.summary = p || null; }), opts);
+  mcp.watchTool(IB, "get_pa_performance_all_periods", null, ok("perf", p => { S.perf = p || null; }), {refetchInterval:300000, cache:{staleTime:120000, gcTime:3600000}});
+}
+async function loadIBOnce(){
+  const mcp = S.mcp; if(!mcp) return;
+  try{
+    const r = await mcp.callTool(IB, "get_account_summary", {}, {cache:{refresh:true}});
+    S.summary = r.payload; S.stored.sum = Date.now(); S.ibErr=null; $("#cartera-state").innerHTML="";
+    await mcp.invalidate(IB);
+    renderAll();
+  }catch(e){ stateBox($("#cartera-state"), errCopy(e,"Interactive Brokers"), "err"); }
+}
+
+/* ---------- FMP helpers for the chat tools ---------- */
+async function fmp(tool, input, signal){
+  const r = await S.mcp.callTool(FMP, tool, input, {signal, cache:{staleTime:120000, gcTime:1800000}});
+  return r.payload;
+}
+const arr = p => Array.isArray(p) ? p : (p && Array.isArray(p.data) ? p.data : (p ? [p] : []));
+const first = p => arr(p)[0] || null;
+function pick(o, keys){ const out={}; for(const k of keys){ if(o && o[k]!=null) out[k]=typeof o[k]==="number"?r4(o[k]):o[k]; } return out; }
+const TX_ES = {"P-Purchase":"Compra en mercado","S-Sale":"Venta en mercado","M-Exempt":"Ejercicio de opciones/RSU","A-Award":"Otorgamiento","F-InKind":"Retención por impuestos","G-Gift":"Donación","D-Return":"Devolución","C-Conversion":"Conversión","X-InTheMoney":"Ejercicio ITM","J-Other":"Otra","W-Will":"Herencia","I-Discretionary":"Discrecional","":"Sin código"};
+const txEs = t => TX_ES[t] || t || "—";
+
+function portfolioForChat(){
+  const live = S.positions.filter(p=>p.position);
+  const stk = live.filter(p=>p.kind!=="opt").sort((a,b)=>Math.abs(b.usd||0)-Math.abs(a.usd||0)).map(p=>({simbolo_ib:p.symbol, simbolo_fmp:p.fmp, bolsa:p.exch, tipo:p.kind==="crypto"?"cripto":"accion/ETF", cantidad:r2(p.position), precio:r2(p.market_price), moneda:p.currency, valor_usd:Math.round(p.usd||0), pnl_no_realizado_pct:r4(p.upnlPct), pnl_dia_usd:Math.round(p.dpnlUsd||0)}));
+  const opt = live.filter(p=>p.kind==="opt").map(p=>({subyacente:p.symbol, tipo:p.opt?.type, strike:p.opt?.strike, vence:p.opt?.expiry, contratos:p.position, posicion:p.position<0?"vendida":"comprada", valor_usd:Math.round(p.usd||0), pnl_no_realizado_usd:Math.round(p.upnlUsd||0)}));
+  const s = S.summary||{};
+  return {fecha:new Date().toISOString().slice(0,10), moneda_base:"USD", valor_neto:Math.round(s.net_liquidation||0), efectivo:Math.round(s.total_cash_value||0), margen_mantenimiento:Math.round(s.maintenance_margin||0), apalancamiento:s.leverage, pnl_dia_usd:Math.round(live.reduce((a,p)=>a+(p.dpnlUsd||0),0)), acciones:stk, opciones:opt, actualizado:S.stored.pos?new Date(S.stored.pos).toISOString():null};
+}
+
+function chatTools(signal){
+  const t = [
+    { name:"mi_cartera", description:"Devuelve la cartera actual del usuario en Interactive Brokers: valor neto, efectivo, margen, acciones/ETFs con símbolo FMP, cantidad, valor en USD y P&L, y opciones abiertas. Usala antes de opinar sobre la cartera.",
+      execute: async () => { if(!S.positions.length && S.mcp){ const r = await S.mcp.callTool(IB,"get_account_positions",{}, {signal}); S.positions=(r.payload?.positions||[]).map(parsePos); } return portfolioForChat(); } },
+    { name:"buscar_empresas", description:"Screener de FMP. Filtra empresas por bolsa, sector, industria y capitalización mínima en USD. Devuelve hasta 30 con símbolo, nombre, capitalización, precio, industria y beta. Usá exchange 'NYSE,NASDAQ' para EE.UU.; 'PAR','XETRA','AMS','LSE','SIX','MIL','MCE' para Europa.",
+      inputSchema:{type:"object", properties:{exchange:{type:"string",description:"Códigos separados por coma. Por defecto NYSE,NASDAQ"}, sector:{type:"string",description:"Ej. Industrials, Technology, Healthcare, Consumer Defensive, Financial Services"}, industry:{type:"string"}, marketCapMin:{type:"number",description:"USD, por defecto 2e9"}, dividendMin:{type:"number"}, limit:{type:"number"}}},
+      execute: async (i) => { const p = await fmp("search", {endpoint:"search-company-screener", exchange:String(i.exchange||"NYSE,NASDAQ"), sector:i.sector?String(i.sector):undefined, industry:i.industry?String(i.industry):undefined, marketCapMoreThan:Number(i.marketCapMin||2e9), dividendMoreThan:i.dividendMin!=null?Number(i.dividendMin):undefined, isActivelyTrading:true, isEtf:false, isFund:false, limit:Math.min(Number(i.limit||30),60)}, signal);
+        return {fuente:"FMP screener", resultados: arr(p).map(c=>({simbolo:c.symbol, nombre:c.companyName, cap_usd:c.marketCap, precio:c.price, industria:c.industry, sector:c.sector, beta:c.beta, bolsa:c.exchangeShortName, pais:c.country}))}; } },
+    { name:"metricas_valor", description:"Para hasta 8 símbolos devuelve métricas TTM de calidad y valuación desde FMP: P/E, P/FCF, EV/EBITDA, rendimiento de FCF y de ganancias, ROIC, ROE, deuda neta/EBITDA, márgenes, cobertura de intereses, Piotroski, Altman Z, dividendo, número de Graham, precio vs. medias de 50 y 200 días y rango de 52 semanas. Es la herramienta central para juzgar 'calidad con descuento'.",
+      inputSchema:{type:"object", properties:{symbols:{type:"array", items:{type:"string"}, description:"Símbolos FMP, máx. 8"}}, required:["symbols"]},
+      execute: async (i) => { const syms = (Array.isArray(i.symbols)?i.symbols:String(i.symbols||"").split(",")).map(s=>String(s).trim().toUpperCase()).filter(Boolean).slice(0,8);
+        if(!syms.length) throw new Error("Pasá al menos un símbolo.");
+        const out = await Promise.all(syms.map(async sym => {
+          try{
+            const [km, ra, sc, q] = await Promise.all([fmp("statements",{endpoint:"key-metrics-ttm",symbol:sym},signal), fmp("statements",{endpoint:"metrics-ratios-ttm",symbol:sym},signal), fmp("statements",{endpoint:"financial-scores",symbol:sym},signal).catch(()=>null), fmp("quote",{endpoint:"quote",symbol:sym},signal).catch(()=>null)]);
+            const k=first(km)||{}, r=first(ra)||{}, s=first(sc)||{}, qq=first(q)||{};
+            if(!k.symbol && !r.symbol) return {simbolo:sym, ok:false, error:"FMP no tiene métricas para este símbolo"};
+            return {simbolo:sym, ok:true, precio:qq.price, cap_usd:k.marketCap, ev:k.enterpriseValueTTM,
+              pe:r2(r.priceToEarningsRatioTTM), p_fcf:r2(r.priceToFreeCashFlowRatioTTM), p_ventas:r2(r.priceToSalesRatioTTM), p_libros:r2(r.priceToBookRatioTTM), ev_ebitda:r2(k.evToEBITDATTM), ev_fcf:r2(k.evToFreeCashFlowTTM),
+              rend_fcf:r4(k.freeCashFlowYieldTTM), rend_ganancias:r4(k.earningsYieldTTM), roic:r4(k.returnOnInvestedCapitalTTM), roe:r4(k.returnOnEquityTTM), roa:r4(k.returnOnAssetsTTM),
+              deuda_neta_ebitda:r2(k.netDebtToEBITDATTM), deuda_sobre_capital:r2(r.debtToEquityRatioTTM), cobertura_intereses:r2(r.interestCoverageRatioTTM), ratio_corriente:r2(k.currentRatioTTM),
+              margen_bruto:r4(r.grossProfitMarginTTM), margen_operativo:r4(r.operatingProfitMarginTTM), margen_neto:r4(r.netProfitMarginTTM), calidad_ganancias:r2(k.incomeQualityTTM), capex_sobre_ocf:r4(k.capexToOperatingCashFlowTTM), sbc_sobre_ventas:r4(k.stockBasedCompensationToRevenueTTM),
+              piotroski:s.piotroskiScore, altman_z:r2(s.altmanZScore), dividendo_yield:r4(r.dividendYieldTTM), payout:r4(r.dividendPayoutRatioTTM), graham:r2(k.grahamNumberTTM),
+              media_50d:qq.priceAvg50, media_200d:qq.priceAvg200, max_52s:qq.yearHigh, min_52s:qq.yearLow, dist_max_52s:(qq.price&&qq.yearHigh)?r4(qq.price/qq.yearHigh-1):null, fuente:"FMP TTM" };
+          }catch(e){ return {simbolo:sym, ok:false, error:e?.message||e?.code||"error"}; }
+        }));
+        return {fecha:new Date().toISOString().slice(0,10), empresas:out}; } },
+    { name:"perfil_empresa", description:"Perfil de una empresa desde FMP: descripción breve, sector, país, CEO, empleados, cotización actual con rango de 52 semanas, DCF de FMP vs. precio, y los dos últimos ejercicios anuales (ventas, resultado operativo, resultado neto, EPS). Usala para entender el negocio antes de evaluarlo.",
+      inputSchema:{type:"object", properties:{symbol:{type:"string"}}, required:["symbol"]},
+      execute: async (i) => { const sym = String(i.symbol||"").trim().toUpperCase();
+        const [pr, dc, inc] = await Promise.all([fmp("company",{endpoint:"profile-symbol",symbol:sym},signal), fmp("discountedCashFlow",{endpoint:"dcf-advanced",symbol:sym},signal).catch(()=>null), fmp("statements",{endpoint:"income-statement",symbol:sym,period:"annual",limit:3},signal).catch(()=>null)]);
+        const p = first(pr); if(!p) throw new Error("FMP no encontró el símbolo "+sym);
+        const d = first(dc)||{};
+        return {simbolo:sym, nombre:p.companyName, descripcion:String(p.description||"").slice(0,700), sector:p.sector, industria:p.industry, pais:p.country, bolsa:p.exchange, moneda:p.currency, ceo:p.ceo, empleados:p.fullTimeEmployees, ipo:p.ipoDate, web:p.website, cik:p.cik, isin:p.isin,
+          precio:p.price, cap:p.marketCap, beta:p.beta, rango_52s:p.range, ultimo_dividendo:p.lastDividend,
+          dcf_fmp:d.dcf!=null?{valor:r2(d.dcf), precio:d["Stock Price"], fecha:d.date, descuento:(d.dcf&&d["Stock Price"])?r4(1-d["Stock Price"]/d.dcf):null}:null,
+          ejercicios: arr(inc).map(x=>({anio:x.fiscalYear, moneda:x.reportedCurrency, ventas:x.revenue, resultado_operativo:x.operatingIncome, resultado_neto:x.netIncome, eps_diluido:x.epsDiluted, margen_operativo:x.revenue?r4(x.operatingIncome/x.revenue):null})), fuente:"FMP"}; } },
+    { name:"insiders", description:"Operaciones de insiders (Formulario 4 en la SEC) para un símbolo de EE.UU.: estadísticas por trimestre (compras vs. ventas) y las últimas operaciones con nombre, cargo, tipo, acciones, precio y enlace a EDGAR. Solo cubre empresas que reportan a la SEC.",
+      inputSchema:{type:"object", properties:{symbol:{type:"string"}, limit:{type:"number"}}, required:["symbol"]},
+      execute: async (i) => { const sym = String(i.symbol||"").trim().toUpperCase();
+        const [st, tr] = await Promise.all([fmp("insiderTrades",{endpoint:"insider-trade-statistics",symbol:sym},signal).catch(()=>null), fmp("insiderTrades",{endpoint:"search-insider-trades",symbol:sym,limit:Math.min(Number(i.limit||25),60)},signal)]);
+        const stats = arr(st).slice(0,6).map(s=>({periodo:`${s.year}T${s.quarter}`, compras_mercado:s.totalPurchases, ventas_mercado:s.totalSales, adquisiciones:s.acquiredTransactions, disposiciones:s.disposedTransactions, acciones_adquiridas:s.totalAcquired, acciones_dispuestas:s.totalDisposed}));
+        const ops = arr(tr).map(t=>({fecha:t.transactionDate, presentado:t.filingDate, insider:t.reportingName, cargo:t.typeOfOwner, tipo:txEs(t.transactionType), codigo:t.transactionType, sentido:t.acquisitionOrDisposition==="A"?"adquiere":t.acquisitionOrDisposition==="D"?"dispone":"", acciones:t.securitiesTransacted, precio:t.price, valor_usd:(t.price&&t.securitiesTransacted)?Math.round(t.price*t.securitiesTransacted):null, titulo:t.securityName, formulario:t.formType, edgar:t.url}));
+        return {simbolo:sym, estadisticas_trimestrales:stats, operaciones:ops, nota:"P-Purchase = compra con dinero propio (señal fuerte). S-Sale = venta. M-Exempt/A-Award/F-InKind son mecánicas de compensación, no señal.", fuente:"FMP sobre SEC EDGAR"}; } },
+    { name:"noticias", description:"Últimas noticias de uno o varios símbolos desde FMP (título, medio, fecha, extracto en inglés y enlace). Resumilas en español al responder.",
+      inputSchema:{type:"object", properties:{symbols:{type:"array", items:{type:"string"}}, limit:{type:"number"}}, required:["symbols"]},
+      execute: async (i) => { const syms = (Array.isArray(i.symbols)?i.symbols:String(i.symbols||"").split(",")).map(s=>String(s).trim().toUpperCase()).filter(Boolean).slice(0,10);
+        const p = await fmp("news",{endpoint:"search-stock-news",symbols:syms,limit:Math.min(Number(i.limit||12),30)},signal);
+        return {noticias: arr(p).map(n=>({simbolo:n.symbol, fecha:n.publishedDate, medio:n.publisher||n.site, titulo:n.title, extracto:String(n.text||"").slice(0,300), url:n.url})), fuente:"FMP news"}; } },
+    { name:"filings_sec", description:"Presentaciones recientes en la SEC (EDGAR) de un símbolo: tipo de formulario (10-K, 10-Q, 8-K, 4, 13D...), fecha y enlaces oficiales a sec.gov. Opcionalmente filtra por tipo y fecha desde.",
+      inputSchema:{type:"object", properties:{symbol:{type:"string"}, formType:{type:"string"}, desde:{type:"string",description:"AAAA-MM-DD"}, limit:{type:"number"}}, required:["symbol"]},
+      execute: async (i) => { const sym = String(i.symbol||"").trim().toUpperCase(); const to = new Date().toISOString().slice(0,10); const from = i.desde ? String(i.desde) : new Date(Date.now()-180*864e5).toISOString().slice(0,10);
+        const p = await fmp("secFilings",{endpoint:"search-by-symbol",symbol:sym,from_date:from,to_date:to,limit:Math.min(Number(i.limit||40),100)},signal);
+        let rows = arr(p); if(i.formType) rows = rows.filter(f=>String(f.formType).toUpperCase()===String(i.formType).toUpperCase());
+        return {simbolo:sym, desde:from, hasta:to, presentaciones: rows.slice(0,40).map(f=>({formulario:f.formType, fecha:String(f.filingDate||"").slice(0,10), indice_edgar:f.link, documento:f.finalLink})), fuente:"SEC EDGAR vía FMP"}; } },
+    { name:"cotizacion", description:"Cotización actual de hasta 20 símbolos FMP: precio, variación del día, volumen, máximo y mínimo de 52 semanas, medias de 50 y 200 días, capitalización.",
+      inputSchema:{type:"object", properties:{symbols:{type:"array", items:{type:"string"}}}, required:["symbols"]},
+      execute: async (i) => { const syms = (Array.isArray(i.symbols)?i.symbols:String(i.symbols||"").split(",")).map(s=>String(s).trim().toUpperCase()).filter(Boolean).slice(0,20);
+        const p = await fmp("quote",{endpoint:"batch-quote",symbols:syms},signal);
+        return {cotizaciones: arr(p).map(q=>({simbolo:q.symbol, nombre:q.name, precio:q.price, var_dia_pct:r2(q.changePercentage), volumen:q.volume, max_52s:q.yearHigh, min_52s:q.yearLow, media_50d:q.priceAvg50, media_200d:q.priceAvg200, cap:q.marketCap, bolsa:q.exchange, hora:q.timestamp?new Date(q.timestamp*1000).toISOString():null})), fuente:"FMP quote"}; } },
+    { name:"analistas", description:"Consenso de analistas de FMP para un símbolo: precio objetivo (alto, bajo, mediana, consenso) y resumen de calificaciones. Usalo solo como contexto, nunca como argumento principal de valor.",
+      inputSchema:{type:"object", properties:{symbol:{type:"string"}}, required:["symbol"]},
+      execute: async (i) => { const sym = String(i.symbol||"").trim().toUpperCase();
+        const [pt, gr] = await Promise.all([fmp("analyst",{endpoint:"price-target-consensus",symbol:sym},signal).catch(()=>null), fmp("analyst",{endpoint:"grades-summary",symbol:sym},signal).catch(()=>null)]);
+        return {simbolo:sym, precio_objetivo:pick(first(pt),["targetHigh","targetLow","targetConsensus","targetMedian"]), calificaciones:pick(first(gr),["strongBuy","buy","hold","sell","strongSell","consensus"]), fuente:"FMP analistas"}; } }
+  ];
+  const max = S.sampleLimits?.tools?.maxCount;
+  return (max && max < t.length) ? t.slice(0, max) : t;
+}
+
+function systemTurn(){
+  const pf = portfolioForChat();
+  const hoy = new Date().toLocaleDateString("es-UY",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  return `Sos el analista de inversiones de Gravity, la terminal personal de Bruno. Hoy es ${hoy}.
+
+QUIÉN TE HABLA: Bruno, inversor de largo plazo con enfoque de valor, abogado y empresario uruguayo. No programa. Entiende de negocios y finanzas; explicale brevemente, entre paréntesis, cualquier término técnico la primera vez que aparezca en la respuesta.
+
+CÓMO HABLAR: español rioplatense (vos, tenés, mirá), tono directo y cálido, rigor absoluto. Nunca halagues sin sustancia ni digas que sí a todo. Si una idea de Bruno tiene un problema, decilo y explicá por qué.
+
+FUENTES Y HONESTIDAD (regla central):
+- Tus únicas fuentes de datos son las herramientas: Interactive Brokers (cuenta), FMP (precios, estados contables, métricas, screener, insiders, noticias, analistas) y SEC EDGAR (presentaciones). No uses cifras de memoria. Si no llamaste a una herramienta, no afirmes un número.
+- Citá la fuente y la fecha del dato en cada respuesta con cifras (ej. "FMP, TTM al ${pf.fecha}"). Cuando haya enlace a EDGAR o a una noticia, incluilo como enlace Markdown.
+- Si una herramienta falla o no cubre algo (por ejemplo insiders de una empresa europea, que no reporta a la SEC), decilo explícitamente y seguí con lo que sí tenés.
+- Las métricas TTM de FMP pueden tener errores o desfasajes; si un número luce absurdo (ROE de 1000 %, P/E negativo), señalalo en vez de usarlo a ciegas.
+
+MARCO DE VALOR ("calidad con descuento"):
+Calidad: ROIC alto y estable (ideal > 15 %), márgenes brutos y operativos altos para su industria, deuda neta/EBITDA baja (ideal < 2), cobertura de intereses holgada, conversión de ganancias en flujo de caja (calidad de ganancias ≥ 1), Piotroski ≥ 6, Altman Z > 3, compensación en acciones moderada, negocio entendible con ventaja competitiva.
+Descuento: rendimiento de flujo de caja libre (FCF yield) alto para su calidad (> 4-5 % es interesante en una empresa excelente), EV/EBITDA y P/FCF por debajo de lo que merece esa calidad, precio por debajo del DCF de FMP, precio lejos del máximo de 52 semanas o por debajo de la media de 200 días, compras de insiders con dinero propio (código P).
+Siempre separá calidad de precio: una gran empresa cara no es una oportunidad, y una empresa barata sin calidad es una trampa de valor. Señalá riesgos específicos (deuda, ciclo, disrupción, gobierno corporativo, moneda).
+
+MÉTODO PARA BUSCAR OPORTUNIDADES: 1) buscar_empresas con filtros razonables (capitalización ≥ 2.000 M USD salvo que pidan otra cosa); 2) metricas_valor sobre los candidatos más prometedores (hasta 8 por llamada; podés hacer más de una ronda); 3) ordenar por la combinación calidad × descuento; 4) mostrar una tabla Markdown compacta con 5 a 8 empresas y luego 2-3 líneas por empresa; 5) ofrecer profundizar con perfil_empresa, insiders y filings_sec.
+
+MÉTODO PARA ANALIZAR UNA EMPRESA: perfil_empresa + metricas_valor + insiders (si es de EE.UU.) y, si aporta, noticias y filings_sec. Estructura: qué hace y por qué es buena (o no), números de calidad, valuación actual, señales de insiders, riesgos, conclusión en una frase. No des órdenes de compra o venta; dá un análisis fundado y dejá la decisión a Bruno.
+
+CARTERA: para preguntas sobre su cartera usá mi_cartera. Símbolos FMP de sus posiciones no estadounidenses: usá el campo simbolo_fmp (ej. RMS.PA, 0700.HK, 7974.T, CSU.TO, WKL.AS, STMN.SW, ALL.AX, 005930.KS). Opciones: vendidas = cobró prima, obligación; compradas = derecho.
+
+FORMATO: Markdown. Párrafos cortos. Tablas solo cuando comparan varias empresas o métricas. Números con separador de miles y símbolo de moneda; porcentajes con una decimal. Respuestas completas pero sin relleno. Terminá con la lista de fuentes consultadas y sus fechas.
+
+RESUMEN ACTUAL DE LA CARTERA (de Interactive Brokers, ${pf.actualizado||"sin hora"}): valor neto ${fmtUsd(pf.valor_neto)}, efectivo ${fmtUsd(pf.efectivo)}, apalancamiento ${pf.apalancamiento||"—"}. Principales posiciones: ${pf.acciones.slice(0,14).map(a=>`${a.simbolo_fmp||a.simbolo_ib} (${fmtUsd(a.valor_usd)})`).join(", ")||"sin datos todavía"}. Opciones abiertas: ${pf.opciones.length}. Para detalle llamá a mi_cartera.`;
+}
+
+/* ---------- chat UI ---------- */
+function addMsg(role, html){
+  const d = document.createElement("div"); d.className = "msg " + role;
+  const md = document.createElement("div"); md.className = "md"; d.append(md);
+  if(role==="user") md.textContent = html; else renderMd(md, html);
+  $("#msgs").append(d); d.scrollIntoView({block:"end", behavior:"smooth"});
+  return d;
+}
+function askInChat(q){ showTab("chat"); const i = $("#chat-input"); i.value = q; i.focus(); autoGrow(i); }
+function autoGrow(t){ t.style.height="auto"; t.style.height = Math.min(t.scrollHeight, 140) + "px"; }
+function setBusy(b){ S.busy = b; const btn = $("#btn-send"); btn.classList.toggle("stop", b); btn.setAttribute("aria-label", b?"Detener":"Enviar"); btn.innerHTML = b ? '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'; }
+function saveTurns(){ try{ localStorage.setItem("gravity.turns", JSON.stringify(S.turns.slice(-30))); }catch(e){} }
+function loadTurns(){ try{ const t = JSON.parse(localStorage.getItem("gravity.turns")||"[]"); if(Array.isArray(t)){ S.turns = t; for(const m of t) addMsg(m.role==="user"?"user":"bot", m.content); } }catch(e){} }
+
+async function send(){
+  if(S.busy){ S.ctl?.abort(); return; }
+  const input = $("#chat-input"); const q = input.value.trim(); if(!q) return;
+  if(!S.sample){ stateBox($("#chat-state"), "Esta vista no puede consultar a Claude. Abrí el enlace del artefacto en claude.ai con tu sesión iniciada.", "err"); return; }
+  if(!S.mcp){ stateBox($("#chat-state"), "Sin acceso a los conectores: el chat responderá sin datos en vivo.", "warn"); }
+  $("#chat-state").innerHTML = "";
+  input.value = ""; autoGrow(input);
+  addMsg("user", q);
+  S.turns.push({role:"user", content:q});
+  const bot = addMsg("bot", ""); const md = bot.querySelector(".md");
+  md.innerHTML = '<span class="thinking">Consultando fuentes <i></i><i></i><i></i></span>';
+  const used = []; const toolsEl = document.createElement("div"); toolsEl.className = "tools";
+  S.ctl = new AbortController(); setBusy(true);
+  const tools = S.mcp ? chatTools(S.ctl.signal).map(t => ({...t, execute: async (i, ctx) => { used.push(t.name); const s=document.createElement("span"); s.textContent=t.name; toolsEl.append(s); if(!bot.contains(toolsEl)) bot.append(toolsEl); return t.execute(i, ctx); }})) : undefined;
+  const history = S.turns.slice(-16);
+  const msgs = [{role:"user", content: systemTurn()}, ...history];
+  try{
+    const res = await S.sample(msgs, { cache:false, signal:S.ctl.signal, modelTier:S.tier, tools, onText: ({text}) => { renderMd(md, text); } });
+    renderMd(md, res.text);
+    if(res.truncated){ const n=document.createElement("div"); n.className="muted"; n.style.fontSize="12px"; n.textContent="Respuesta recortada por longitud. Pedí menos de una vez."; bot.append(n); }
+    S.turns.push({role:"assistant", content:res.text}); saveTurns();
+  }catch(e){
+    if(e?.text){ renderMd(md, e.text); S.turns.push({role:"assistant", content:e.text}); }
+    else md.textContent = "";
+    if(e?.code!=="cancelled"){
+      const copy = { not_granted:"No permitiste que esta página consulte a Claude. Podés habilitarlo desde el menú de permisos del artefacto.", rate_limited:"Llegaste al límite de uso de Claude por ahora. Probá en unos minutos.", refused:"Claude no pudo responder a ese pedido tal como está. Reformulalo.", tools_unavailable:"Esta vista no permite herramientas; respondo sin datos en vivo.", prompt_too_large:"La conversación es demasiado larga. Empezá una nueva.", session_expired:"Tu sesión de claude.ai venció. Volvé a iniciar sesión.", empty_completion:"Claude no devolvió texto. Reformulá la pregunta." }[e?.code] || ("Falló la consulta: " + (e?.message||e?.code||"error desconocido") + ". Podés reintentar.");
+      const er = document.createElement("div"); er.className = "msg err"; er.textContent = copy; $("#msgs").append(er); er.scrollIntoView({block:"end"});
+      if(!e?.text){ bot.remove(); if(S.turns[S.turns.length-1]?.role==="user") { /* keep user turn so a retry has it */ } }
+    } else if(!e?.text){ bot.remove(); }
+  }finally{ setBusy(false); S.ctl = null; }
+}
+
+/* ---------- insiders tab ---------- */
+function insiderItem(t){
+  const buy = t.transactionType==="P-Purchase", sell = t.transactionType==="S-Sale";
+  const val = (t.price && t.securitiesTransacted) ? t.price*t.securitiesTransacted : null;
+  const d = document.createElement("div"); d.className = "item";
+  d.innerHTML = `<div class="t"><span class="tag ${buy?"buy":sell?"sell":""}">${esc(buy?"Compra":sell?"Venta":txEs(t.transactionType))}</span>${esc(t.symbol)} · ${esc(t.reportingName)}</div>
+    <div class="r">${esc(fmtNum(t.securitiesTransacted,0))} acc.${t.price?` @ ${esc(fmtNum(t.price,2))}`:""}<br>${val?esc(fmtUsd(val)):""}</div>
+    <div class="m">${esc(t.typeOfOwner||"")} · ${esc(t.securityName||"")} · operado ${esc(t.transactionDate||"")} · presentado ${esc(t.filingDate||"")}${t.url?` · <a href="${esc(t.url)}" target="_blank" rel="noopener">EDGAR</a>`:""}</div>`;
+  return d;
+}
+async function loadInsiders(force){
+  if(!S.mcp){ stateBox($("#ins-mine"), "Sin acceso a conectores en esta vista.", "err"); return; }
+  if(S.insidersLoaded && !force) return;
+  S.insidersLoaded = true;
+  const mine = $("#ins-mine"), mkt = $("#ins-mkt");
+  mine.innerHTML = `<div class="skel"></div><div class="skel" style="width:70%"></div>`; mkt.innerHTML = `<div class="skel"></div><div class="skel" style="width:60%"></div>`;
+  const syms = Array.from(new Set(S.positions.filter(p=>p.isUS && p.position).map(p=>p.symbol)));
+  const opts = {cache:{staleTime:600000, gcTime:3600000}};
+  try{
+    const res = await Promise.all(syms.map(s => S.mcp.callTool(FMP,"insiderTrades",{endpoint:"search-insider-trades",symbol:s,limit:12},opts).then(r=>arr(r.payload)).catch(e=>({err:e, s}))));
+    const rows = []; const failed = [];
+    res.forEach((r,i)=>{ if(Array.isArray(r)) rows.push(...r); else failed.push(syms[i]); });
+    rows.sort((a,b)=>String(b.filingDate).localeCompare(String(a.filingDate)));
+    const real = rows.filter(t=>t.transactionType==="P-Purchase"||t.transactionType==="S-Sale");
+    const other = rows.filter(t=>!(t.transactionType==="P-Purchase"||t.transactionType==="S-Sale"));
+    mine.innerHTML = "";
+    if(!syms.length) stateBox(mine, "No tenés acciones de EE.UU. en cartera, que son las que reportan a la SEC.", "warn");
+    else if(!rows.length) stateBox(mine, "FMP no devolvió operaciones recientes para " + syms.join(", ") + ".", "warn");
+    else {
+      const head = document.createElement("div"); head.className="muted"; head.style.fontSize="12px"; head.style.marginBottom="4px";
+      head.textContent = `${real.length} compras/ventas en mercado y ${other.length} movimientos de compensación en ${syms.join(", ")}`; mine.append(head);
+      for(const t of real.slice(0,40)) mine.append(insiderItem(t));
+      if(other.length){ const det=document.createElement("details"); det.style.marginTop="8px"; const sm=document.createElement("summary"); sm.className="muted"; sm.style.fontSize="13px"; sm.style.cursor="pointer"; sm.textContent=`Ver ${other.length} movimientos de compensación (RSU, ejercicios, retenciones)`; det.append(sm); for(const t of other.slice(0,60)) det.append(insiderItem(t)); mine.append(det); }
+      if(failed.length){ const w=document.createElement("div"); w.className="state warn"; w.textContent="No se pudo consultar: "+failed.join(", "); mine.append(w); }
+    }
+    S.insMine = real.slice(0,40);
+  }catch(e){ stateBox(mine, errCopy(e,"FMP"), "err", {fn:()=>loadInsiders(true)}); }
+  try{
+    const r = await S.mcp.callTool(FMP,"insiderTrades",{endpoint:"latest-insider-trade",limit:100},opts);
+    const buys = arr(r.payload).filter(t=>t.transactionType==="P-Purchase" && t.formType==="4" && t.securitiesTransacted>0).sort((a,b)=>(b.price*b.securitiesTransacted)-(a.price*a.securitiesTransacted));
+    mkt.innerHTML = "";
+    $("#ins-mkt-fresh").textContent = "FMP · " + hhmm(r.cache?.storedAt || Date.now());
+    if(!buys.length) stateBox(mkt, "No hubo compras en mercado abierto entre las últimas 100 operaciones presentadas.", "warn");
+    for(const t of buys.slice(0,30)) mkt.append(insiderItem(t));
+  }catch(e){ stateBox(mkt, errCopy(e,"FMP"), "err", {fn:()=>loadInsiders(true)}); }
+}
+async function summarizeInsiders(){
+  const host = $("#ins-mine-sum"); const btn = $("#btn-ins-sum");
+  if(!S.sample){ host.hidden=false; host.textContent="Esta vista no puede consultar a Claude."; return; }
+  const data = S.insMine || [];
+  if(!data.length){ host.hidden=false; host.textContent="No hay compras o ventas en mercado para resumir."; return; }
+  btn.disabled = true; host.hidden = false; host.innerHTML = '<span class="thinking">Resumiendo <i></i><i></i><i></i></span>';
+  const rows = data.slice(0,40).map(t=>`${t.symbol} | ${t.transactionType} | ${t.reportingName} (${t.typeOfOwner}) | ${t.securitiesTransacted} acciones @ ${t.price} | operado ${t.transactionDate} | presentado ${t.filingDate}`).join("\n");
+  try{
+    const {text} = await S.sample(`Sos analista de valor. Resumí en español rioplatense, en 6 a 10 líneas con viñetas, qué hicieron los insiders de estas empresas (posiciones de la cartera del usuario). Priorizá compras con dinero propio (P-Purchase) por tamaño en dólares, señalá patrones (varios directivos comprando, CEO vendiendo mucho) y aclarará cuando una venta parezca rutinaria. No inventes nada que no esté en los datos. Datos (FMP sobre SEC EDGAR, hoy ${new Date().toISOString().slice(0,10)}):\n\n${rows}`, {modelTier:"quick", cache:{gcTime:1800000}});
+    renderMd(host, text);
+  }catch(e){ host.textContent = e?.code==="not_granted" ? "No permitiste que esta página consulte a Claude." : "No se pudo resumir ahora. " + (e?.message||""); }
+  finally{ btn.disabled=false; }
+}
+
+/* ---------- news tab ---------- */
+function newsSymbols(){ const mine = S.positions.filter(p=>p.isUS && p.position).map(p=>p.symbol); return Array.from(new Set([...mine, ...S.extraSyms])); }
+function renderNewsChips(){
+  const host = $("#news-syms"); host.innerHTML = "";
+  for(const s of newsSymbols()){ const b=document.createElement("button"); b.className="chip"+(S.newsSyms.includes(s)?" on":""); b.textContent=s; b.onclick=()=>{ S.newsSyms = S.newsSyms.includes(s) ? S.newsSyms.filter(x=>x!==s) : [...S.newsSyms, s]; renderNewsChips(); loadNews(true); }; host.append(b); }
+}
+async function loadNews(force){
+  if(!S.mcp){ stateBox($("#news-list"), "Sin acceso a conectores en esta vista.", "err"); return; }
+  if(S.newsLoaded && !force) return; S.newsLoaded = true;
+  const host = $("#news-list"); host.innerHTML = `<div class="skel"></div><div class="skel" style="width:80%"></div><div class="skel" style="width:60%"></div>`;
+  const syms = S.newsSyms.length ? S.newsSyms : newsSymbols();
+  if(!syms.length){ stateBox(host, "Agregá un símbolo para ver noticias.", "warn"); return; }
+  try{
+    const r = await S.mcp.callTool(FMP,"news",{endpoint:"search-stock-news",symbols:syms.slice(0,15),limit:30},{cache:{staleTime:300000, gcTime:1800000}});
+    const items = arr(r.payload).sort((a,b)=>String(b.publishedDate).localeCompare(String(a.publishedDate)));
+    S.newsItems = items; host.innerHTML = "";
+    if(!items.length){ stateBox(host, "FMP no devolvió noticias para " + syms.join(", ") + ".", "warn"); return; }
+    items.forEach((n,i)=>{
+      const d = document.createElement("div"); d.className="item"; d.dataset.i = i;
+      d.innerHTML = `<div class="t"><span class="tag">${esc(n.symbol)}</span><a href="${esc(n.url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(n.title)}</a></div><div class="r">${esc(String(n.publishedDate||"").slice(5,16))}</div><div class="m">${esc(n.publisher||n.site||"")} · ${esc(String(n.text||"").slice(0,180))}</div>`;
+      host.append(d);
+    });
+  }catch(e){ stateBox(host, errCopy(e,"FMP"), "err", {fn:()=>loadNews(true)}); }
+}
+async function translateNews(){
+  const btn = $("#btn-news-es"); const items = (S.newsItems||[]).slice(0,20);
+  if(!S.sample){ stateBox($("#news-list"), "Esta vista no puede consultar a Claude.", "err"); return; }
+  if(!items.length) return;
+  btn.disabled = true; btn.textContent = "Traduciendo…";
+  const src = items.map((n,i)=>`${i} | ${n.symbol} | ${n.title} | ${String(n.text||"").slice(0,260)}`).join("\n");
+  try{
+    const out = await S.sample.json(`Traducí al español rioplatense y resumí en una frase cada noticia (máximo 30 palabras por resumen, sin opinar). Respondé solo con un array JSON de objetos {"i": número, "titulo": string, "resumen": string}, uno por línea de entrada, conservando el índice i.\n\n${src}`, {modelTier:"quick", cache:{gcTime:1800000}});
+    const map = new Map((Array.isArray(out)?out:[]).map(o=>[Number(o.i), o]));
+    $$("#news-list .item").forEach(el=>{ const o = map.get(Number(el.dataset.i)); if(!o) return; let es = el.querySelector(".es"); if(!es){ es=document.createElement("div"); es.className="es"; el.append(es); } es.textContent = `${o.titulo||""} — ${o.resumen||""}`; });
+    btn.textContent = "Traducido";
+  }catch(e){ btn.textContent = "Traducir y resumir"; stateBox($("#news-list").appendChild(document.createElement("div")), e?.code==="not_granted" ? "No permitiste que esta página consulte a Claude." : "No se pudo traducir ahora.", "warn"); }
+  finally{ btn.disabled=false; }
+}
+
+/* ---------- tabs ---------- */
+const TABS = ["cartera","chat","insiders","noticias"];
+function showTab(name){
+  if(!TABS.includes(name)) name = "cartera";
+  S.tab = name;
+  for(const t of TABS){ $("#view-"+t).hidden = t!==name; }
+  $$("nav.tabs button").forEach(b => b.toggleAttribute("aria-current", b.dataset.tab===name) || (b.dataset.tab===name ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current")));
+  if(location.hash !== "#"+name){ try{ history.replaceState(null,"","#"+name); }catch(e){} }
+  if(name==="insiders") loadInsiders(false);
+  if(name==="noticias"){ renderNewsChips(); loadNews(false); }
+  if(name==="cartera") drawSpark();
+  $("#main").scrollTop = 0;
+}
+
+/* ---------- boot ---------- */
+function boot(){
+  $$("nav.tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  window.addEventListener("hashchange", () => showTab(location.hash.replace("#","")));
+  $$("#spark-seg button").forEach(b => b.onclick = () => { S.period = b.dataset.p; $$("#spark-seg button").forEach(x=>x.setAttribute("aria-pressed", x===b)); drawSpark(); });
+  $$("#tier-seg button").forEach(b => b.onclick = () => { S.tier = b.dataset.t; $$("#tier-seg button").forEach(x=>x.setAttribute("aria-pressed", x===b)); try{ localStorage.setItem("gravity.tier", S.tier); }catch(e){} });
+  try{ const t = localStorage.getItem("gravity.tier"); if(t && ["quick","default","complex"].includes(t)){ S.tier=t; $$("#tier-seg button").forEach(x=>x.setAttribute("aria-pressed", x.dataset.t===t)); } }catch(e){}
+  $$("#suggest .chip").forEach(b => b.onclick = () => { $("#chat-input").value = b.dataset.q; autoGrow($("#chat-input")); send(); });
+  $("#btn-send").onclick = send;
+  const inp = $("#chat-input"); inp.addEventListener("input", () => autoGrow(inp)); inp.addEventListener("keydown", e => { if(e.key==="Enter" && !e.shiftKey && window.innerWidth>700){ e.preventDefault(); send(); } });
+  $("#btn-clear").onclick = () => { S.ctl?.abort(); S.turns = []; saveTurns(); const m=$("#msgs"); while(m.children.length>1) m.lastChild.remove(); };
+  $("#btn-ins-sum").onclick = summarizeInsiders;
+  $("#btn-news-es").onclick = translateNews;
+  const addSym = () => { const v = $("#news-sym").value.trim().toUpperCase(); if(!v) return; if(!S.extraSyms.includes(v)) S.extraSyms.push(v); S.newsSyms = [v]; $("#news-sym").value=""; renderNewsChips(); loadNews(true); };
+  $("#btn-news-add").onclick = addSym; $("#news-sym").addEventListener("keydown", e => { if(e.key==="Enter"){ e.preventDefault(); addSym(); } });
+  $("#btn-info").onclick = () => { $("#sheet").hidden = false; };
+  $("#sheet-close").onclick = () => { $("#sheet").hidden = true; };
+  $("#sheet").addEventListener("click", e => { if(e.target.id==="sheet") $("#sheet").hidden = true; });
+  $("#h-nav").onclick = () => { if(S.mcp) S.mcp.invalidate(IB).catch(()=>{}); };
+  window.addEventListener("resize", drawSpark);
+  loadTurns();
+  showTab(location.hash.replace("#","") || "cartera");
+  renderAll();
+
+  const diag = [];
+  const c = window.claude;
+  if(!c || typeof c.use!=="function"){
+    stateBox($("#cartera-state"), "Esta copia de la página no está dentro del visor de claude.ai, así que no puede leer tu cuenta. Abrí el enlace del artefacto en claude.ai.", "err");
+    $("#h-fresh").textContent = "Sin conexión"; return;
+  }
+  c.use("mcp").then(mcp => {
+    S.mcp = mcp; diag.push("conectores: " + (mcp?"disponibles":"no disponibles"));
+    if(!mcp){ stateBox($("#cartera-state"), "Esta vista no tiene acceso a tus conectores. Abrí el artefacto en claude.ai con tu sesión iniciada.", "err"); $("#h-fresh").textContent = "Sin conectores"; return; }
+    watchIB();
+    if(S.tab==="insiders") loadInsiders(false);
+    if(S.tab==="noticias"){ renderNewsChips(); loadNews(false); }
+    $("#sheet-diag").textContent = diag.join(" · ");
+  });
+  c.use("sample").then(async s => {
+    S.sample = s; diag.push("Claude: " + (s?"disponible":"no disponible"));
+    if(s){ try{ S.sampleLimits = await s.limits(); if(!S.sampleLimits?.tools) diag.push("sin herramientas en esta vista"); }catch(e){} }
+    $("#sheet-diag").textContent = diag.join(" · ");
+  });
+}
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", boot); else boot();
+})();
+</script>
