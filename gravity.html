@@ -14,24 +14,7 @@
   --r:12px; --r-sm:8px; --tabbar:60px; --shadow:0 8px 30px rgba(0,0,0,.45);
   color-scheme:dark;
 }
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]){
-    --bg:#f3f4f7; --surface:#ffffff; --surface-2:#f0f2f5; --surface-3:#e6e9ee; --line:#dfe3ea; --line-2:#cfd5de;
-    --fg:#141821; --muted:#5b6473; --faint:#8a93a3;
-    --accent:#1f6feb; --accent-soft:rgba(31,111,235,.12); --accent-ink:#ffffff;
-    --up:#149a52; --up-soft:rgba(20,154,82,.12); --down:#d8383f; --down-soft:rgba(216,56,63,.12); --warn:#b4731c; --warn-soft:rgba(180,115,28,.14);
-    --shadow:0 8px 30px rgba(20,24,33,.14);
-    color-scheme:light;
-  }
-}
-:root[data-theme="light"]{
-  --bg:#f3f4f7; --surface:#ffffff; --surface-2:#f0f2f5; --surface-3:#e6e9ee; --line:#dfe3ea; --line-2:#cfd5de;
-  --fg:#141821; --muted:#5b6473; --faint:#8a93a3;
-  --accent:#1f6feb; --accent-soft:rgba(31,111,235,.12); --accent-ink:#ffffff;
-  --up:#149a52; --up-soft:rgba(20,154,82,.12); --down:#d8383f; --down-soft:rgba(216,56,63,.12); --warn:#b4731c; --warn-soft:rgba(180,115,28,.14);
-  --shadow:0 8px 30px rgba(20,24,33,.14);
-  color-scheme:light;
-}
+/* Siempre oscuro: una terminal no cambia de tema con el visor. */
 html,body{height:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.4;overflow:hidden;-webkit-font-smoothing:antialiased}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:12;background:var(--surface)}
@@ -401,6 +384,7 @@ const r2 = v => (v==null||isNaN(v)) ? null : Math.round(v*100)/100;
 const r4 = v => (v==null||isNaN(v)) ? null : Math.round(v*10000)/10000;
 const px = (v) => v==null ? "—" : fmtNum(v, Math.abs(v)<10 ? 3 : Math.abs(v)<1000 ? 2 : 0);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+document.documentElement.setAttribute("data-theme","dark");
 function renderMd(el, md){
   try{ if(window.marked && window.DOMPurify){ el.innerHTML = DOMPurify.sanitize(marked.parse(md, {gfm:true, breaks:true}), {ADD_ATTR:["target"]}); $$("a", el).forEach(a=>{a.target="_blank"; a.rel="noopener";}); return; } }catch(e){}
   el.textContent = md;
