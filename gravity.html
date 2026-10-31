@@ -1,247 +1,324 @@
 <title>Gravity</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
-/* Layout: one-screen app. Sticky header with net value, scrollable main, fixed bottom tab bar. Dark-first terminal. */
+/* Layout: one-screen terminal app. Compact sticky header (net value + market tape), scrollable main, fixed bottom tab bar, bottom sheets for detail. Dark-first graphite with one cool accent; green/red reserved for P&L. */
 :root{
-  --bg:#0b0f14; --panel:#121923; --panel-2:#182230; --line:#243040;
-  --fg:#e7edf3; --muted:#8a9bb0; --faint:#5c6b7e;
-  --accent:#f2b544; --accent-ink:#1a1206;
-  --up:#3fcf8e; --down:#ff6b6b; --warn:#f2b544;
-  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --font-display:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
-  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-  --radius:10px; --tabbar:62px;
+  --bg:#0b0d11; --surface:#12151b; --surface-2:#191d25; --surface-3:#20252f; --line:#262b36; --line-2:#303642;
+  --fg:#e9ebf0; --muted:#98a1b3; --faint:#5f6878;
+  --accent:#5b9cff; --accent-soft:rgba(91,156,255,.14); --accent-ink:#071224;
+  --up:#2ecc80; --up-soft:rgba(46,204,128,.14); --down:#ff5a5f; --down-soft:rgba(255,90,95,.14); --warn:#f0b35a; --warn-soft:rgba(240,179,90,.14);
+  --font-display:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-body:"Source Sans 3","Source Sans Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:12px; --r-sm:8px; --tabbar:60px; --shadow:0 8px 30px rgba(0,0,0,.45);
   color-scheme:dark;
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]){
-    --bg:#f3f5f8; --panel:#ffffff; --panel-2:#eef1f5; --line:#d9dfe7;
-    --fg:#131a23; --muted:#5a6878; --faint:#8794a3;
-    --accent:#b4771a; --accent-ink:#ffffff;
-    --up:#15965f; --down:#d8404a; --warn:#b4771a;
+    --bg:#f3f4f7; --surface:#ffffff; --surface-2:#f0f2f5; --surface-3:#e6e9ee; --line:#dfe3ea; --line-2:#cfd5de;
+    --fg:#141821; --muted:#5b6473; --faint:#8a93a3;
+    --accent:#1f6feb; --accent-soft:rgba(31,111,235,.12); --accent-ink:#ffffff;
+    --up:#149a52; --up-soft:rgba(20,154,82,.12); --down:#d8383f; --down-soft:rgba(216,56,63,.12); --warn:#b4731c; --warn-soft:rgba(180,115,28,.14);
+    --shadow:0 8px 30px rgba(20,24,33,.14);
     color-scheme:light;
   }
 }
 :root[data-theme="light"]{
-  --bg:#f3f5f8; --panel:#ffffff; --panel-2:#eef1f5; --line:#d9dfe7;
-  --fg:#131a23; --muted:#5a6878; --faint:#8794a3;
-  --accent:#b4771a; --accent-ink:#ffffff;
-  --up:#15965f; --down:#d8404a; --warn:#b4771a;
+  --bg:#f3f4f7; --surface:#ffffff; --surface-2:#f0f2f5; --surface-3:#e6e9ee; --line:#dfe3ea; --line-2:#cfd5de;
+  --fg:#141821; --muted:#5b6473; --faint:#8a93a3;
+  --accent:#1f6feb; --accent-soft:rgba(31,111,235,.12); --accent-ink:#ffffff;
+  --up:#149a52; --up-soft:rgba(20,154,82,.12); --down:#d8383f; --down-soft:rgba(216,56,63,.12); --warn:#b4731c; --warn-soft:rgba(180,115,28,.14);
+  --shadow:0 8px 30px rgba(20,24,33,.14);
   color-scheme:light;
 }
 html,body{height:100%}
-body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.45;overflow:hidden}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.4;overflow:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:12;background:var(--surface)}
 *{box-sizing:border-box}
-button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-a{color:var(--accent)}
-.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
-.up{color:var(--up)} .down{color:var(--down)} .muted{color:var(--muted)}
-.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible,input:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.up{color:var(--up)} .down{color:var(--down)} .muted{color:var(--muted)} .faint{color:var(--faint)}
+.eyebrow{font-family:var(--font-display);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700}
+[hidden]{display:none!important}
 
 #app{height:100%;display:flex;flex-direction:column}
-header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line);
-  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.top-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-.brand{font-family:var(--font-display);font-weight:600;font-size:20px;letter-spacing:.02em}
-.brand small{font-family:var(--font-body);font-weight:400;font-size:12px;color:var(--muted);margin-left:8px}
-.nav-big{font-family:var(--font-mono);font-size:22px;font-weight:500;letter-spacing:-.01em}
-.nav-sub{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:2px}
-.fresh{font-size:11px;color:var(--faint)}
-.fresh.stale{color:var(--warn)}
+/* ---------- header ---------- */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{padding-block:8px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1080px;margin:0 auto}
+.brand-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:.01em;display:flex;align-items:center;gap:8px}
+.brand .dot{width:8px;height:8px;border-radius:50%;background:var(--faint);box-shadow:0 0 0 3px var(--surface-2)}
+.brand .dot.live{background:var(--up)} .brand .dot.warn{background:var(--warn)} .brand .dot.err{background:var(--down)}
+.brand small{font-family:var(--font-body);font-weight:500;font-size:12px;color:var(--muted)}
+.hdr-actions{display:flex;gap:4px}
+.icon-btn{width:36px;height:36px;border-radius:var(--r-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--muted)}
+.icon-btn:hover{background:var(--surface-2);color:var(--fg)}
+.icon-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:4px;flex-wrap:wrap}
+.nav-big{font-family:var(--font-mono);font-size:30px;font-weight:600;line-height:1.1;letter-spacing:-.02em}
+.nav-big .cur{font-size:14px;color:var(--muted);font-weight:500;margin-left:4px}
+.nav-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted);padding-bottom:4px}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-family:var(--font-mono);font-size:12px;font-weight:500;background:var(--surface-2);color:var(--fg)}
+.pill.up{background:var(--up-soft);color:var(--up)} .pill.down{background:var(--down-soft);color:var(--down)}
+.tape{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;padding:8px 0 8px;margin-top:4px;border-top:1px solid var(--line)}
+.tape::-webkit-scrollbar{display:none}
+.tape .t{flex:none;display:flex;flex-direction:column;gap:1px;min-width:92px}
+.tape .t b{font-family:var(--font-display);font-weight:700;font-size:11px;color:var(--muted);letter-spacing:.03em;white-space:nowrap}
+.tape .t span{font-family:var(--font-mono);font-size:12px;white-space:nowrap}
+.tape .t .d{font-size:11px}
+.tape.empty .t span{color:var(--faint)}
 
+/* ---------- main ---------- */
 main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding-block:14px calc(var(--tabbar) + env(safe-area-inset-bottom,0px) + 14px);
+  padding-block:12px calc(var(--tabbar) + env(safe-area-inset-bottom,0px) + 16px);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-section.view{display:flex;flex-direction:column;gap:14px;max-width:960px;margin:0 auto}
+section.view{display:flex;flex-direction:column;gap:12px;max-width:1080px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;min-width:0}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.card-head h2{font-size:14px;font-weight:700;letter-spacing:.01em}
+.card-head .sub{font-size:12px;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:860px){ .two{grid-template-columns:1.4fr 1fr} .two .card:first-child{display:flex;flex-direction:column} .two .card:first-child canvas.chart{flex:1;min-height:180px;height:auto} }
 
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--panel);border-top:1px solid var(--line);
-  display:flex;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom,0px);
-  padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
-nav.tabs button{flex:1;height:var(--tabbar);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.02em}
-nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-nav.tabs button[aria-current="page"]{color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:640px){ .kpis{grid-template-columns:repeat(4,minmax(0,1fr))} }
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.kpi .v{font-family:var(--font-mono);font-size:19px;font-weight:600;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .s{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .bar{height:4px;border-radius:2px;background:var(--surface-3);margin-top:6px;overflow:hidden}
+.kpi .bar i{display:block;height:100%;background:var(--accent);border-radius:2px}
 
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
-.panel h2{font-family:var(--font-display);font-size:15px;font-weight:600;margin:0 0 8px;letter-spacing:.01em;text-wrap:balance}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;min-width:0}
-.tile .v{font-family:var(--font-mono);font-size:18px;font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tile .s{font-size:12px;color:var(--muted);margin-top:2px}
-.spark-wrap{display:flex;flex-direction:column;gap:8px}
-.spark-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
-.seg{display:inline-flex;background:var(--panel-2);border-radius:8px;padding:2px;gap:2px}
-.seg button{padding:4px 10px;border-radius:6px;font-size:12px;color:var(--muted)}
-.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.25)}
-canvas.spark{width:100%;height:110px;display:block;max-width:100%}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:var(--r-sm);padding:2px;gap:2px}
+.seg button{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;color:var(--muted);font-family:var(--font-display)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+canvas.chart{width:100%;height:150px;display:block;max-width:100%}
+canvas.chart.sm{height:110px}
+.chart-foot{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);flex-wrap:wrap;margin-top:4px}
 
-table.pos{width:100%;border-collapse:collapse;font-size:13px}
-table.pos th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
-table.pos th:first-child,table.pos td:first-child{text-align:left}
-table.pos td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;white-space:nowrap}
-table.pos tr.row{cursor:pointer}
-table.pos tr.row:hover td{background:var(--panel-2)}
-table.pos td.sym{font-weight:600;white-space:normal;min-width:0}
-table.pos td.sym small{display:block;color:var(--muted);font-weight:400;font-size:11px}
-table.pos tr.detail td{background:var(--panel-2);text-align:left;white-space:normal;font-size:12px;color:var(--muted)}
-.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px 12px;margin-bottom:8px}
-.detail-grid b{display:block;color:var(--fg);font-family:var(--font-mono);font-weight:500}
-.tbl-wrap{overflow-x:auto;margin:0 -14px;padding:0 14px}
-.bars{display:flex;flex-direction:column;gap:6px}
-.bar{display:grid;grid-template-columns:48px 1fr 80px;align-items:center;gap:8px;font-size:12px}
-.bar i{display:block;height:8px;border-radius:4px;background:var(--accent);opacity:.85}
-.bar .num{text-align:right}
+.stack{display:flex;flex-direction:column;gap:10px}
+.sbar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--surface-3)}
+.sbar i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--c);margin-right:6px;vertical-align:1px}
+.legend b{color:var(--fg);font-family:var(--font-mono);font-weight:500}
+.rank{display:flex;flex-direction:column;gap:6px}
+.rank .r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:13px}
+.rank .r .bar{grid-column:1/-1;height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden}
+.rank .r .bar i{display:block;height:100%;background:var(--accent);opacity:.8}
 
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:13px}
-.btn.ghost{background:var(--panel-2);color:var(--fg);font-weight:500}
-.btn:disabled{opacity:.5;cursor:default}
-.chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);font-size:12px;color:var(--fg);white-space:nowrap}
-.chip.on{border-color:var(--accent);color:var(--accent)}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.state{padding:12px 14px;border-radius:var(--radius);background:var(--panel-2);color:var(--muted);font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.state.err{border-left:3px solid var(--down)}
-.state.warn{border-left:3px solid var(--warn)}
-.skel{background:linear-gradient(90deg,var(--panel-2),var(--panel),var(--panel-2));background-size:200% 100%;animation:sh 1.4s infinite;border-radius:6px;height:14px}
+/* positions */
+.pos-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.pos-cols{display:none}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;align-items:center}
+.row:last-child{border-bottom:0}
+.row:hover{background:linear-gradient(90deg,transparent,var(--surface-2) 10%,var(--surface-2) 90%,transparent)}
+.row .c1{min-width:0}
+.row .sym{font-family:var(--font-display);font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;min-width:0}
+.row .sym .tag{font-family:var(--font-body)}
+.row .name{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .qty{font-size:12px;color:var(--muted);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .c3{text-align:right;font-family:var(--font-mono);font-size:14px;font-weight:600;white-space:nowrap}
+.row .c3 small{display:block;font-size:11px;font-weight:400;color:var(--muted)}
+.row .c2,.row .c4{font-family:var(--font-mono);font-size:12px;white-space:nowrap}
+.row .c2{grid-column:1;display:flex;gap:8px;align-items:center;color:var(--muted)}
+.row .c2>span:first-child{display:none}
+.row .c4{grid-column:2;text-align:right}
+.row .w{grid-column:1/-1;height:2px;background:var(--surface-3);border-radius:1px;overflow:hidden;margin-top:4px}
+.row .w i{display:block;height:100%;background:var(--accent);opacity:.7}
+.tag{display:inline-block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:4px;background:var(--surface-3);color:var(--muted);font-weight:600;vertical-align:middle;white-space:nowrap}
+.tag.buy{background:var(--up-soft);color:var(--up)} .tag.sell{background:var(--down-soft);color:var(--down)} .tag.acc{background:var(--accent-soft);color:var(--accent)}
+@media (min-width:720px){
+  .pos-cols{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.1fr) minmax(0,1.1fr) minmax(0,1.1fr);gap:12px;padding:4px 0 6px;border-bottom:1px solid var(--line);font-family:var(--font-display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .pos-cols span{text-align:right} .pos-cols span:first-child{text-align:left}
+  .row{grid-template-columns:minmax(0,2fr) minmax(0,1.1fr) minmax(0,1.1fr) minmax(0,1.1fr);gap:12px}
+  .row .c2{grid-column:auto;justify-content:flex-end;font-size:13px;color:var(--fg)} .row .c4{grid-column:auto;font-size:13px}
+  .row .qty{display:none} .row .c2>span:first-child{display:inline}
+  .row .w{display:none}
+}
+.empty{padding:14px;border-radius:var(--r-sm);background:var(--surface-2);color:var(--muted);font-size:13px;text-align:center}
+.state{padding:10px 12px;border-radius:var(--r-sm);background:var(--surface-2);color:var(--muted);font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-left:3px solid var(--line-2)}
+.state.err{border-left-color:var(--down)} .state.warn{border-left-color:var(--warn)}
+.skel{background:linear-gradient(90deg,var(--surface-2),var(--surface-3),var(--surface-2));background-size:200% 100%;animation:sh 1.4s infinite;border-radius:6px;height:14px}
 @keyframes sh{from{background-position:200% 0}to{background-position:-200% 0}}
-@media (prefers-reduced-motion: reduce){.skel{animation:none}}
+@media (prefers-reduced-motion: reduce){.skel{animation:none} *{scroll-behavior:auto!important}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:var(--r-sm);background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13px;font-family:var(--font-display)}
+.btn.ghost{background:var(--surface-2);color:var(--fg);font-weight:600}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:default}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);font-size:12px;color:var(--fg);white-space:nowrap;font-weight:500}
+.chip.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.hscroll{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.hscroll::-webkit-scrollbar{display:none}
+.hscroll .chip{flex:none}
 
-/* Chat */
-.chat{display:flex;flex-direction:column;gap:10px;min-height:calc(100% - 2px)}
-.msgs{display:flex;flex-direction:column;gap:10px}
-.msg{max-width:92%;padding:10px 12px;border-radius:14px;font-size:14px;min-width:0;overflow-wrap:anywhere}
-.msg.user{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
-.msg.bot{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:4px}
-.msg.bot .md p{margin:0 0 8px} .msg.bot .md p:last-child{margin:0}
-.msg.bot .md h1,.msg.bot .md h2,.msg.bot .md h3{font-family:var(--font-display);font-size:15px;margin:10px 0 6px}
-.msg.bot .md ul,.msg.bot .md ol{margin:4px 0 8px;padding-left:20px}
-.msg.bot .md table{border-collapse:collapse;font-size:12px;margin:6px 0;display:block;overflow-x:auto;max-width:100%}
-.msg.bot .md th,.msg.bot .md td{border:1px solid var(--line);padding:4px 6px;text-align:right;white-space:nowrap;font-family:var(--font-mono)}
-.msg.bot .md th:first-child,.msg.bot .md td:first-child{text-align:left;font-family:var(--font-body)}
-.msg.bot .md code{font-family:var(--font-mono);font-size:12px;background:var(--panel-2);padding:1px 4px;border-radius:4px}
-.msg.bot .md pre{overflow-x:auto;background:var(--panel-2);padding:8px;border-radius:6px}
-.msg .tools{font-size:11px;color:var(--faint);margin-top:6px;display:flex;gap:4px;flex-wrap:wrap}
-.msg .tools span{background:var(--panel-2);padding:2px 6px;border-radius:4px}
-.msg.err{align-self:flex-start;background:transparent;border:1px dashed var(--down);color:var(--down);font-size:13px}
-.thinking{display:inline-flex;gap:4px;align-items:center;color:var(--muted);font-size:13px}
+/* ---------- chat ---------- */
+.chat{min-height:calc(100% - 2px);display:flex;flex-direction:column;gap:10px}
+.msgs{display:flex;flex-direction:column;gap:12px;flex:1}
+.msg{min-width:0;overflow-wrap:anywhere}
+.msg.user{align-self:flex-end;max-width:88%;background:var(--accent);color:var(--accent-ink);padding:9px 13px;border-radius:16px 16px 4px 16px;font-size:14px;white-space:pre-wrap}
+.msg.bot{align-self:stretch;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;font-size:14px}
+.msg.bot .who{display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
+.msg.bot .who .ic{width:18px;height:18px;border-radius:5px;background:var(--accent);display:inline-flex;align-items:center;justify-content:center}
+.msg.bot .who .ic svg{width:12px;height:12px;stroke:var(--accent-ink);fill:none;stroke-width:2.2;stroke-linecap:round}
+.md p{margin:0 0 8px} .md p:last-child{margin:0}
+.md h1,.md h2,.md h3{font-size:14px;margin:12px 0 6px;letter-spacing:.01em} .md h1:first-child,.md h2:first-child,.md h3:first-child{margin-top:0}
+.md ul,.md ol{margin:4px 0 8px;padding-left:20px}
+.md li{margin:2px 0}
+.md table{border-collapse:collapse;font-size:12px;margin:8px 0;display:block;overflow-x:auto;max-width:100%;border:1px solid var(--line);border-radius:6px}
+.md th,.md td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:right;white-space:nowrap;font-family:var(--font-mono);font-size:12px}
+.md th{background:var(--surface-2);font-family:var(--font-display);font-weight:700;color:var(--muted);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.md th:first-child,.md td:first-child{text-align:left;font-family:var(--font-body);font-weight:600}
+.md tr:last-child td{border-bottom:0}
+.md code{font-family:var(--font-mono);font-size:12px;background:var(--surface-2);padding:1px 4px;border-radius:4px}
+.md pre{overflow-x:auto;background:var(--surface-2);padding:8px;border-radius:6px}
+.md pre code{background:none;padding:0}
+.md blockquote{margin:6px 0;padding:4px 10px;border-left:3px solid var(--line-2);color:var(--muted)}
+.md hr{border:0;border-top:1px solid var(--line);margin:10px 0}
+.src{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.src span{font-family:var(--font-mono);font-size:11px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+.src span.ok{color:var(--up)} .src span.ko{color:var(--down)} .src span.run{color:var(--accent)}
+.msg.err{align-self:stretch;background:var(--down-soft);border:1px solid var(--down);color:var(--fg);padding:10px 12px;border-radius:var(--r-sm);font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.thinking{display:inline-flex;gap:5px;align-items:center;color:var(--muted);font-size:13px}
 .thinking i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:bl 1.2s infinite}
 .thinking i:nth-child(2){animation-delay:.2s}.thinking i:nth-child(3){animation-delay:.4s}
 @keyframes bl{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.sugg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (min-width:720px){.sugg{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.sugg button{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.sugg button:hover{border-color:var(--accent)}
+.sugg b{font-family:var(--font-display);font-size:13px;font-weight:700}
+.sugg span{font-size:12px;color:var(--muted)}
 .composer{position:sticky;bottom:0;background:var(--bg);padding-top:6px;display:flex;flex-direction:column;gap:8px}
-.composer-row{display:flex;gap:8px;align-items:flex-end}
-.composer textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:12px;padding:10px 12px;font:inherit;font-size:14px;max-height:140px;line-height:1.35}
-.composer .send{width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);flex:none}
-.composer .send svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.composer-row{display:flex;gap:8px;align-items:flex-end;background:var(--surface);border:1px solid var(--line-2);border-radius:14px;padding:6px 6px 6px 12px}
+.composer-row:focus-within{border-color:var(--accent)}
+.composer textarea{flex:1;min-width:0;resize:none;border:0;background:transparent;color:var(--fg);padding:8px 0;font:inherit;font-size:14px;max-height:140px;line-height:1.35}
+.composer textarea:focus{outline:none}
+.composer .send{width:38px;height:38px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);flex:none}
+.composer .send svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .composer .send.stop{background:var(--down);color:#fff}
 .composer-meta{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 
-/* Lists (insiders, news) */
+/* ---------- lists ---------- */
 .list{display:flex;flex-direction:column}
-.item{padding:10px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:4px 10px;min-width:0}
+.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;padding:10px 0;border-bottom:1px solid var(--line);min-width:0;align-items:start}
 .item:last-child{border-bottom:0}
-.item .t{font-weight:500;min-width:0;overflow-wrap:anywhere}
-.item .m{font-size:12px;color:var(--muted);grid-column:1/-1;min-width:0;overflow-wrap:anywhere}
+.item .av{width:36px;height:36px;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:11px;color:var(--muted);grid-row:1/3;letter-spacing:.02em;overflow:hidden}
+.item .av.buy{background:var(--up-soft);color:var(--up)} .item .av.sell{background:var(--down-soft);color:var(--down)}
+.item .t{font-weight:600;font-size:14px;min-width:0;overflow-wrap:anywhere}
+.item .t a{color:inherit}
+.item .m{font-size:12px;color:var(--muted);min-width:0;overflow-wrap:anywhere;grid-column:2/-1}
 .item .r{text-align:right;font-family:var(--font-mono);font-size:12px;white-space:nowrap}
-.item .es{grid-column:1/-1;font-size:13px;color:var(--fg);background:var(--panel-2);padding:8px 10px;border-radius:8px;margin-top:2px}
-.tag{display:inline-block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:4px;background:var(--panel-2);color:var(--muted);margin-right:6px;vertical-align:middle}
-.tag.buy{background:color-mix(in srgb,var(--up) 18%,transparent);color:var(--up)}
-.tag.sell{background:color-mix(in srgb,var(--down) 18%,transparent);color:var(--down)}
-.row-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.item .es{grid-column:2/-1;font-size:13px;background:var(--surface-2);padding:8px 10px;border-radius:8px;margin-top:4px;border-left:3px solid var(--accent)}
+.summary-md{font-size:14px;background:var(--surface-2);border-radius:var(--r-sm);padding:10px 12px;margin-top:8px;border-left:3px solid var(--accent)}
 .sym-input{display:flex;gap:6px}
-.sym-input input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:8px 10px;font:inherit;font-size:14px;text-transform:uppercase}
-.summary-md p{margin:0 0 8px} .summary-md p:last-child{margin:0} .summary-md ul{margin:4px 0;padding-left:18px}
+.sym-input input{flex:1;min-width:0;border:1px solid var(--line-2);background:var(--surface);color:var(--fg);border-radius:var(--r-sm);padding:8px 10px;font:inherit;font-size:14px;text-transform:uppercase;font-family:var(--font-mono)}
 
-/* Sheet */
-.sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
-.sheet .card{background:var(--panel);width:100%;max-width:640px;border-radius:16px 16px 0 0;max-height:85%;overflow-y:auto;
-  padding-block:16px calc(env(safe-area-inset-bottom,0px) + 16px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.sheet h3{font-family:var(--font-display);margin:0 0 8px;font-size:17px}
+/* ---------- tabs ---------- */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--surface);border-top:1px solid var(--line);
+  display:flex;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+nav.tabs button{flex:1;max-width:160px;height:var(--tabbar);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;color:var(--muted);font-weight:700;font-family:var(--font-display);letter-spacing:.02em;position:relative}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button[aria-current="page"]{color:var(--accent)}
+nav.tabs button[aria-current="page"]::before{content:"";position:absolute;top:0;left:30%;right:30%;height:2px;background:var(--accent);border-radius:0 0 2px 2px}
+
+/* ---------- sheet ---------- */
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.sheet .card{width:100%;max-width:680px;border-radius:16px 16px 0 0;max-height:88%;overflow-y:auto;box-shadow:var(--shadow);border-bottom:0;
+  padding-block:10px calc(env(safe-area-inset-bottom,0px) + 16px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sheet .grip{width:36px;height:4px;border-radius:2px;background:var(--line-2);margin:0 auto 10px}
+.sheet h3{font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sheet h3 small{font-family:var(--font-body);font-weight:500;font-size:13px;color:var(--muted)}
 .sheet ol{padding-left:20px;margin:6px 0 12px;color:var(--muted);font-size:14px}
 .sheet p{margin:6px 0;font-size:14px;color:var(--muted)}
-.icon-btn{width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted)}
-.icon-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-@media (min-width:720px){ .tile .v{font-size:20px} .msg{max-width:80%} }
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 14px;margin:10px 0}
+.kv div{font-size:12px;color:var(--muted);min-width:0}
+.kv b{display:block;color:var(--fg);font-family:var(--font-mono);font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.range{margin:10px 0}
+.range .track{position:relative;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--down),var(--warn),var(--up));opacity:.9}
+.range .mark{position:absolute;top:-4px;width:14px;height:14px;border-radius:50%;background:var(--fg);border:3px solid var(--surface);transform:translateX(-50%);box-shadow:0 0 0 1px var(--line-2)}
+.range .lbl{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:6px}
+.diag{font-family:var(--font-mono);font-size:11px;color:var(--muted);background:var(--surface-2);padding:8px 10px;border-radius:var(--r-sm);white-space:pre-wrap;overflow-wrap:anywhere}
 </style>
 
 <div id="app">
-  <header class="top">
-    <div class="top-row">
-      <div class="brand">Gravity <small>IB · FMP · EDGAR</small></div>
-      <button class="icon-btn" id="btn-info" aria-label="Instalar y fuentes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+  <header class="top"><div class="top-in">
+    <div class="brand-row">
+      <div class="brand"><span class="dot" id="dot"></span>Gravity <small id="h-fresh">conectando…</small></div>
+      <div class="hdr-actions">
+        <button class="icon-btn" id="btn-refresh" aria-label="Actualizar ahora"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></button>
+        <button class="icon-btn" id="btn-info" aria-label="Instalar y diagnóstico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+      </div>
     </div>
-    <div class="nav-big num" id="h-nav">—</div>
-    <div class="nav-sub">
-      <span id="h-day" class="num">Día —</span>
-      <span id="h-mtd" class="num">Mes —</span>
-      <span class="fresh" id="h-fresh">Conectando con Interactive Brokers…</span>
+    <div class="nav-row">
+      <div class="nav-big" id="h-nav">—<span class="cur">USD</span></div>
+      <div class="nav-meta"><span class="pill" id="h-day">Día —</span><span class="pill" id="h-mtd">Mes —</span><span class="pill" id="h-ytd">Año —</span></div>
     </div>
-  </header>
+    <div class="tape empty" id="tape" aria-label="Mercados"></div>
+  </div></header>
 
   <main id="main">
     <!-- CARTERA -->
     <section class="view" id="view-cartera">
-      <div id="cartera-state"></div>
-      <div class="tiles" id="tiles">
-        <div class="tile"><div class="eyebrow">P&amp;L del día</div><div class="v num skel"></div><div class="s">todas las posiciones, en USD</div></div>
-        <div class="tile"><div class="eyebrow">No realizado</div><div class="v num skel"></div><div class="s">sobre costo promedio</div></div>
-        <div class="tile"><div class="eyebrow">Efectivo</div><div class="v num skel"></div><div class="s">total en USD</div></div>
-        <div class="tile"><div class="eyebrow">Margen usado</div><div class="v num skel"></div><div class="s">mantenimiento / valor neto</div></div>
+      <div id="cartera-state" hidden></div>
+      <div class="kpis" id="kpis">
+        <div class="kpi"><span class="eyebrow">P&amp;L del día</span><span class="v mono skel"></span><span class="s">todas las posiciones, USD</span></div>
+        <div class="kpi"><span class="eyebrow">No realizado</span><span class="v mono skel"></span><span class="s">sobre costo promedio</span></div>
+        <div class="kpi"><span class="eyebrow">Efectivo</span><span class="v mono skel"></span><span class="s">en todas las monedas</span></div>
+        <div class="kpi"><span class="eyebrow">Margen usado</span><span class="v mono skel"></span><span class="s">mantenimiento / valor neto</span><div class="bar"><i style="width:0"></i></div></div>
       </div>
-      <div class="panel spark-wrap">
-        <div class="spark-head">
-          <div><h2 style="margin:0">Evolución del valor neto</h2><div class="muted" id="spark-sub" style="font-size:12px">Rendimiento ponderado por tiempo (TWR), moneda base USD</div></div>
-          <div class="seg" id="spark-seg" role="group" aria-label="Período">
-            <button data-p="7D" aria-pressed="false">7D</button><button data-p="MTD" aria-pressed="true">Mes</button><button data-p="YTD" aria-pressed="false">Año</button><button data-p="1Y" aria-pressed="false">1A</button>
-          </div>
+      <div class="two">
+        <div class="card">
+          <div class="card-head"><div><h2>Valor neto</h2><div class="sub" id="spark-sub">Rendimiento ponderado por tiempo, moneda base USD</div></div>
+            <div class="seg" id="spark-seg" role="group" aria-label="Período"><button data-p="7D" aria-pressed="false">7D</button><button data-p="MTD" aria-pressed="true">Mes</button><button data-p="YTD" aria-pressed="false">Año</button><button data-p="1Y" aria-pressed="false">1A</button></div></div>
+          <canvas class="chart" id="spark" aria-label="Gráfico de valor neto"></canvas>
+          <div class="chart-foot" id="spark-foot"><span>—</span></div>
         </div>
-        <canvas class="spark" id="spark" aria-label="Gráfico de valor neto"></canvas>
-        <div class="muted num" id="spark-foot" style="font-size:12px">—</div>
+        <div class="card stack" id="alloc-card">
+          <div class="card-head"><h2>Asignación</h2><span class="sub" id="alloc-sub">IB, en tiempo real</span></div>
+          <div id="alloc"><div class="skel"></div><div class="skel" style="width:70%;margin-top:8px"></div></div>
+        </div>
       </div>
-      <div class="panel">
-        <div class="row-head"><h2 style="margin:0">Acciones y ETFs</h2><span class="muted" id="cnt-stk" style="font-size:12px"></span></div>
-        <div class="tbl-wrap"><table class="pos" id="tbl-stk"><thead><tr><th>Activo</th><th>Cant.</th><th>Precio</th><th>Valor USD</th><th>P&amp;L</th><th>Día</th></tr></thead><tbody></tbody></table></div>
+      <div class="card">
+        <div class="pos-head">
+          <div class="seg" id="pos-seg" role="group" aria-label="Tipo"><button data-g="stk" aria-pressed="true">Acciones</button><button data-g="opt" aria-pressed="false">Opciones</button><button data-g="crypto" aria-pressed="false">Cripto</button></div>
+          <div class="seg" id="sort-seg" role="group" aria-label="Orden"><button data-s="usd" aria-pressed="true">Valor</button><button data-s="day" aria-pressed="false">Día</button><button data-s="pnl" aria-pressed="false">P&amp;L</button></div>
+        </div>
+        <div class="sub muted" id="pos-sub" style="font-size:12px;margin-bottom:4px"></div>
+        <div class="pos-cols"><span>Activo</span><span>Valor USD · peso</span><span>Precio · día</span><span>P&amp;L</span></div>
+        <div id="pos-list"><div class="skel"></div><div class="skel" style="width:80%;margin-top:10px"></div><div class="skel" style="width:60%;margin-top:10px"></div></div>
       </div>
-      <div class="panel">
-        <div class="row-head"><h2 style="margin:0">Opciones</h2><span class="muted" id="cnt-opt" style="font-size:12px"></span></div>
-        <div class="tbl-wrap"><table class="pos" id="tbl-opt"><thead><tr><th>Contrato</th><th>Cant.</th><th>Precio</th><th>Valor USD</th><th>P&amp;L</th><th>Día</th></tr></thead><tbody></tbody></table></div>
-      </div>
-      <div class="panel" id="panel-crypto" hidden>
-        <div class="row-head"><h2 style="margin:0">Cripto</h2></div>
-        <div class="tbl-wrap"><table class="pos" id="tbl-crypto"><thead><tr><th>Activo</th><th>Cant.</th><th>Precio</th><th>Valor USD</th><th>P&amp;L</th><th>Día</th></tr></thead><tbody></tbody></table></div>
-      </div>
-      <div class="panel">
-        <h2>Exposición por moneda</h2>
-        <div class="muted" style="font-size:12px;margin-bottom:8px">Valor neto por divisa convertido a USD con el tipo de cambio de IB</div>
-        <div class="bars" id="bars-ccy"></div>
-      </div>
-      <div class="panel">
-        <h2>Cuenta</h2>
-        <div class="detail-grid" id="acct-grid"></div>
+      <div class="card">
+        <div class="card-head"><h2>Cuenta</h2><span class="sub">Interactive Brokers, USD</span></div>
+        <div class="kv" id="acct-grid"><div><span class="skel"></span></div></div>
       </div>
     </section>
 
     <!-- CHAT -->
     <section class="view chat" id="view-chat" hidden>
-      <div id="chat-state"></div>
+      <div id="chat-state" hidden></div>
       <div class="msgs" id="msgs">
-        <div class="msg bot"><div class="md"><p><b>Analista de valor.</b> Pregunto a Interactive Brokers, FMP y EDGAR en vivo antes de responder. Puedo buscar empresas de calidad con descuento, evaluar una acción con criterios de valor, revisar qué hacen los insiders o analizar tu cartera.</p><p class="muted" style="font-size:12px">Cada respuesta cita la fuente y la fecha del dato. Si un dato no está en esas fuentes, lo digo en vez de inventarlo.</p></div></div>
+        <div class="msg bot" id="welcome"><div class="who"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 18L10 6l4 8 2-4 4 8"/></svg></span>Analista de valor</div>
+          <div class="md"><p>Consulto Interactive Brokers, FMP y SEC EDGAR en vivo antes de responder, y cito fuente y fecha de cada dato. Puedo buscar empresas de calidad con descuento, evaluar una acción, revisar insiders o analizar tu cartera.</p></div></div>
+        <div class="sugg" id="suggest">
+          <button data-q="Buscá empresas de calidad que coticen con descuento en Estados Unidos. Filtrá por ROIC alto, deuda baja y rendimiento de flujo de caja libre atractivo, y mostrame una tabla con las 5 mejores."><b>Calidad con descuento</b><span>Screener EE.UU. con criterios de valor</span></button>
+          <button data-q="Evaluá mi cartera: concentración, calidad de las empresas que tengo y cuáles están más baratas hoy según sus múltiplos."><b>Evaluá mi cartera</b><span>Concentración, calidad y valuación</span></button>
+          <button data-q="¿Qué compras y ventas de insiders hubo en mis posiciones de Estados Unidos en los últimos meses? Resumí en español."><b>Insiders de mis posiciones</b><span>Formularios 4 recientes</span></button>
+          <button data-q="Analizá Adobe (ADBE) con criterios de valor: calidad del negocio, múltiplos actuales, DCF de FMP, noticias recientes y señales de insiders."><b>Analizá Adobe</b><span>Calidad, múltiplos, DCF, insiders</span></button>
+        </div>
       </div>
       <div class="composer">
-        <div class="chips" id="suggest">
-          <button class="chip" data-q="Buscá empresas de calidad que coticen con descuento en Estados Unidos. Filtrá por ROIC alto, deuda baja y rendimiento de flujo de caja libre atractivo, y mostrame una tabla con las 5 mejores.">Calidad con descuento (EE.UU.)</button>
-          <button class="chip" data-q="Evaluá mi cartera: concentración, calidad de las empresas que tengo y cuáles están más baratas hoy según sus múltiplos.">Evaluá mi cartera</button>
-          <button class="chip" data-q="¿Qué compras y ventas de insiders hubo en mis posiciones de Estados Unidos en los últimos meses? Resumí en español.">Insiders de mis posiciones</button>
-          <button class="chip" data-q="Analizá POOL con criterios de valor: calidad del negocio, múltiplos actuales vs. su historia, DCF de FMP y señales de insiders.">Analizá POOL</button>
-        </div>
         <div class="composer-row">
-          <textarea id="chat-input" rows="1" placeholder="Preguntá sobre acciones, valor, tu cartera…" aria-label="Mensaje"></textarea>
+          <textarea id="chat-input" rows="1" placeholder="Preguntá sobre acciones, valor o tu cartera…" aria-label="Mensaje"></textarea>
           <button class="send" id="btn-send" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         </div>
         <div class="composer-meta">
-          <div class="seg" id="tier-seg" role="group" aria-label="Profundidad">
-            <button data-t="quick" aria-pressed="false">Rápido</button><button data-t="default" aria-pressed="true">Normal</button><button data-t="complex" aria-pressed="false">Profundo</button>
-          </div>
+          <div class="seg" id="tier-seg" role="group" aria-label="Profundidad"><button data-t="quick" aria-pressed="false">Rápido</button><button data-t="default" aria-pressed="true">Normal</button><button data-t="complex" aria-pressed="false">Profundo</button></div>
           <button class="chip" id="btn-clear">Nueva conversación</button>
         </div>
       </div>
@@ -249,26 +326,24 @@ table.pos tr.detail td{background:var(--panel-2);text-align:left;white-space:nor
 
     <!-- INSIDERS -->
     <section class="view" id="view-insiders" hidden>
-      <div class="panel">
-        <div class="row-head"><h2 style="margin:0">Insiders de mis posiciones</h2><button class="btn ghost" id="btn-ins-sum">Resumir en español</button></div>
-        <div class="muted" style="font-size:12px;margin-bottom:6px">Formularios 4 presentados en la SEC por directivos de tus acciones de EE.UU. Fuente: FMP sobre EDGAR.</div>
-        <div id="ins-mine" class="list"><div class="state">Abrí esta pestaña para cargar los datos.</div></div>
+      <div class="card">
+        <div class="card-head"><div><h2>Insiders de mis posiciones</h2><div class="sub">Formularios 4 en la SEC de tus acciones de EE.UU. · FMP sobre EDGAR</div></div><button class="btn ghost sm" id="btn-ins-sum">Resumir en español</button></div>
+        <div id="ins-mine" class="list"></div>
         <div id="ins-mine-sum" class="summary-md" hidden></div>
       </div>
-      <div class="panel">
-        <div class="row-head"><h2 style="margin:0">Compras de insiders en el mercado</h2><span class="muted" id="ins-mkt-fresh" style="font-size:12px"></span></div>
-        <div class="muted" style="font-size:12px;margin-bottom:6px">Últimas compras en mercado abierto (código P) declaradas en la SEC. Las compras con dinero propio son la señal más fuerte; las ventas suelen tener muchas explicaciones.</div>
+      <div class="card">
+        <div class="card-head"><div><h2>Compras en el mercado</h2><div class="sub">Últimas compras con dinero propio (código P) declaradas en la SEC, por tamaño</div></div><span class="sub" id="ins-mkt-fresh"></span></div>
         <div id="ins-mkt" class="list"></div>
       </div>
     </section>
 
     <!-- NOTICIAS -->
     <section class="view" id="view-noticias" hidden>
-      <div class="panel">
-        <div class="row-head"><h2 style="margin:0">Noticias de mis posiciones</h2><button class="btn ghost" id="btn-news-es">Traducir y resumir</button></div>
-        <div class="sym-input" style="margin-bottom:8px"><input id="news-sym" placeholder="Agregar símbolo (ej. MSFT, RMS.PA)" aria-label="Símbolo"><button class="btn ghost" id="btn-news-add">Buscar</button></div>
-        <div class="chips" id="news-syms" style="margin-bottom:8px"></div>
-        <div id="news-list" class="list"><div class="state">Abrí esta pestaña para cargar las noticias.</div></div>
+      <div class="card">
+        <div class="card-head"><div><h2>Noticias</h2><div class="sub">De tus posiciones o del símbolo que agregues · FMP</div></div><button class="btn ghost sm" id="btn-news-es">Traducir y resumir</button></div>
+        <div class="sym-input" style="margin-bottom:8px"><input id="news-sym" placeholder="Símbolo (MSFT, RMS.PA, 0700.HK)" aria-label="Símbolo"><button class="btn sm" id="btn-news-add">Buscar</button></div>
+        <div class="hscroll" id="news-syms" style="margin-bottom:6px"></div>
+        <div id="news-list" class="list"></div>
       </div>
     </section>
   </main>
@@ -281,18 +356,18 @@ table.pos tr.detail td{background:var(--panel-2);text-align:left;white-space:nor
   </nav>
 </div>
 
+<div class="sheet" id="sheet-pos" hidden><div class="card" id="sheet-pos-card"></div></div>
 <div class="sheet" id="sheet" hidden>
   <div class="card">
-    <div class="row-head"><h3 style="margin:0">Gravity en tu celular</h3><button class="icon-btn" id="sheet-close" aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-    <p><b>Android (Chrome):</b></p>
-    <ol><li>Abrí este enlace en Chrome con tu sesión de claude.ai iniciada.</li><li>Tocá el menú ⋮ arriba a la derecha.</li><li>Elegí “Agregar a pantalla de inicio” y confirmá.</li></ol>
-    <p><b>iPhone (Safari):</b></p>
-    <ol><li>Abrí el enlace en Safari.</li><li>Tocá el botón Compartir.</li><li>Elegí “Agregar a inicio”.</li></ol>
-    <h3>Fuentes y permisos</h3>
-    <p>La página pide permiso una sola vez para usar tus conectores de Interactive Brokers y FMP, y para consultar a Claude desde el chat. Las credenciales nunca pasan por esta página: cada llamada la hace claude.ai con tu sesión.</p>
-    <p>Los datos de cuenta se refrescan cada minuto mientras la pestaña está visible. Precios y métricas de FMP se consultan al momento en cada pregunta del chat.</p>
-    <p>Para actualizar precios a mano, tocá el valor neto en el encabezado.</p>
-    <p class="muted" id="sheet-diag" style="font-size:12px"></p>
+    <div class="grip"></div>
+    <div class="card-head"><h3>Gravity en tu celular</h3><button class="icon-btn" id="sheet-close" aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <p><b>Android (Chrome):</b> abrí este enlace con tu sesión de claude.ai, tocá el menú ⋮ y elegí “Agregar a pantalla de inicio”.</p>
+    <p><b>iPhone (Safari):</b> abrí el enlace, tocá Compartir y elegí “Agregar a inicio”.</p>
+    <h3 style="margin-top:12px">Fuentes y permisos</h3>
+    <p>La primera vez, claude.ai pide permiso para usar tus conectores de Interactive Brokers y FMP, y para consultar a Claude desde el chat. Las credenciales nunca pasan por esta página.</p>
+    <p>Cuenta y posiciones: cada 60 s con la pestaña visible. Cotizaciones FMP: cada 60 s. Asignación: cada 5 min. El botón ↻ fuerza una actualización.</p>
+    <h3 style="margin-top:12px">Diagnóstico</h3>
+    <div class="diag" id="diag">…</div>
   </div>
 </div>
 
@@ -301,286 +376,350 @@ table.pos tr.detail td{background:var(--panel-2);text-align:left;white-space:nor
 <script>
 (function(){
 "use strict";
-const IB = "Interactive_Brokers_IBKR";
-const FMP = "FMP";
+const NAMES = { ib:"Interactive Brokers (IBKR)", fmp:"FMP" };
 const $ = (s, el=document) => el.querySelector(s);
 const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
 
 const S = {
-  mcp:null, sample:null, sampleLimits:null,
-  positions:[], summary:null, balances:[], perf:null, rates:{USD:1, BASE:1},
-  stored:{}, tier:"default", period:"MTD",
-  turns:[], busy:false, ctl:null,
-  insidersLoaded:false, newsLoaded:false, newsSyms:[], extraSyms:[],
-  ibErr:null
+  mcp:null, sample:null, sampleLimits:null, ib:NAMES.ib, fmp:NAMES.fmp,
+  positions:[], summary:null, balances:[], perf:null, alloc:null, quotes:{}, tape:[], rates:{USD:1, BASE:1},
+  stored:{}, tier:"default", period:"MTD", group:"stk", sort:"usd",
+  turns:[], busy:false, ctl:null, quoteKey:"", unsubQuotes:null,
+  insidersLoaded:false, newsLoaded:false, newsSyms:[], extraSyms:[], ibErr:null, diag:[]
 };
 
 /* ---------- formatting ---------- */
-const fmtUsd = (v, d=0) => (v==null||isNaN(v)) ? "—" : new Intl.NumberFormat("es-UY",{style:"currency",currency:"USD",maximumFractionDigits:d,minimumFractionDigits:d}).format(v);
+const nf = (d) => new Intl.NumberFormat("es-UY",{maximumFractionDigits:d,minimumFractionDigits:d});
+const fmtUsd = (v, d=0) => (v==null||isNaN(v)) ? "—" : "US$ " + nf(d).format(v);
 const fmtNum = (v, d=2) => (v==null||isNaN(v)) ? "—" : new Intl.NumberFormat("es-UY",{maximumFractionDigits:d,minimumFractionDigits:0}).format(v);
-const fmtPct = (v, d=1) => (v==null||isNaN(v)) ? "—" : (v>0?"+":"") + new Intl.NumberFormat("es-UY",{maximumFractionDigits:d,minimumFractionDigits:d}).format(v*100) + " %";
-const fmtSigned = (v) => (v==null||isNaN(v)) ? "—" : (v>0?"+":"") + fmtUsd(v);
+const fmtPct = (v, d=1) => (v==null||isNaN(v)) ? "—" : (v>0?"+":"") + nf(d).format(v*100) + " %";
+const fmtSigned = (v, d=0) => (v==null||isNaN(v)) ? "—" : (v>0?"+":v<0?"−":"") + "US$ " + nf(d).format(Math.abs(v));
 const cls = v => v>0 ? "up" : v<0 ? "down" : "";
 const hhmm = ts => new Date(ts).toLocaleTimeString("es-UY",{hour:"2-digit",minute:"2-digit"});
 const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const compact = v => (v==null||isNaN(v)) ? "—" : Math.abs(v)>=1e12 ? (v/1e12).toFixed(2)+" B" : Math.abs(v)>=1e9 ? (v/1e9).toFixed(1)+" mM" : Math.abs(v)>=1e6 ? (v/1e6).toFixed(0)+" M" : fmtNum(v,0);
 const r2 = v => (v==null||isNaN(v)) ? null : Math.round(v*100)/100;
 const r4 = v => (v==null||isNaN(v)) ? null : Math.round(v*10000)/10000;
-
+const px = (v) => v==null ? "—" : fmtNum(v, Math.abs(v)<10 ? 3 : Math.abs(v)<1000 ? 2 : 0);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 function renderMd(el, md){
-  try{
-    if(window.marked && window.DOMPurify){ el.innerHTML = DOMPurify.sanitize(marked.parse(md, {gfm:true, breaks:true})); return; }
-  }catch(e){}
+  try{ if(window.marked && window.DOMPurify){ el.innerHTML = DOMPurify.sanitize(marked.parse(md, {gfm:true, breaks:true}), {ADD_ATTR:["target"]}); $$("a", el).forEach(a=>{a.target="_blank"; a.rel="noopener";}); return; } }catch(e){}
   el.textContent = md;
 }
+function log(msg){ S.diag.push(`${hhmm(Date.now())} ${msg}`); if(S.diag.length>40) S.diag.shift(); const d=$("#diag"); if(d) d.textContent = S.diag.join("\n"); }
 
 /* ---------- connector error copy ---------- */
 function errCopy(e, server){
   const s = server || e?.server || "el conector";
-  const code = e?.code || "upstream_error";
-  switch(code){
+  switch(e?.code){
     case "needs_reauth": return `La sesión de ${s} venció. Reconectalo en claude.ai → Configuración → Conectores y recargá.`;
-    case "server_not_connected": return `No encontré el conector ${s} en tu cuenta. Agregalo en claude.ai → Configuración → Conectores.`;
+    case "server_not_connected": return `No encontré el conector “${s}” en tu cuenta. Agregalo en claude.ai → Configuración → Conectores.`;
     case "selection_required": return `Tenés más de un conector llamado ${s}. Elegí uno cuando claude.ai lo pregunte.`;
-    case "not_in_manifest": return `No autorizaste ${s} para esta página. Podés habilitarlo desde el menú de permisos del artefacto.`;
+    case "not_in_manifest": return `No autorizaste ${s} para esta página. Habilitalo desde el menú de permisos del artefacto.`;
     case "blocked_by_policy": return `Tu organización bloquea ${s} para esta página.`;
-    case "approval_required": return `Falta tu aprobación para consultar ${s}.`;
-    case "server_unavailable": return `${s} no respondió a tiempo. Reintento en unos segundos.`;
+    case "approval_required": case "consent_required": return `Falta tu aprobación para consultar ${s}.`;
+    case "server_unavailable": return `${s} no respondió a tiempo.`;
     case "tool_error": return `${s} devolvió un error: ${e?.message || "sin detalle"}.`;
     case "not_granted": case "capability_disabled": case "capability_removed": return "Esta vista no tiene acceso a conectores.";
-    case "consent_required": return `Todavía no permitiste ${s} para esta página.`;
-    default: return `Error con ${s}: ${e?.message || code}.`;
+    default: return `Error con ${s}: ${e?.message || e?.code || "desconocido"}.`;
   }
 }
 function stateBox(host, text, kind, retry){
-  host.innerHTML = "";
+  host.hidden = false; host.innerHTML = "";
   const d = document.createElement("div"); d.className = "state" + (kind?" "+kind:"");
   d.append(document.createTextNode(text));
-  if(retry){ const b=document.createElement("button"); b.className="btn ghost"; b.textContent=retry.label||"Reintentar"; b.onclick=retry.fn; d.append(b); }
+  if(retry){ const b=document.createElement("button"); b.className="btn ghost sm"; b.textContent=retry.label||"Reintentar"; b.onclick=retry.fn; d.append(b); }
   host.append(d);
 }
 
 /* ---------- positions model ---------- */
-const SUFFIX = {SBF:".PA", MONEP:".PA", SEHK:".HK", TSEJ:".T", TSE:".TO", AEB:".AS", EBS:".SW", ASX:".AX", KRX:".KS", IBIS:".DE", IBIS2:".DE", LSE:".L", LSEETF:".L"};
+const SUFFIX = {SBF:".PA", MONEP:".PA", SEHK:".HK", TSEJ:".T", TSE:".TO", AEB:".AS", EBS:".SW", ASX:".AX", KRX:".KS", IBIS:".DE", IBIS2:".DE", LSE:".L", LSEETF:".L", SWB:".DE", FWB:".DE", MIL:".MI", BM:".MC", VSE:".VI", OSE:".OL", SFB:".ST", CPH:".CO", HEX:".HE", SGX:".SI", NSE:".NS"};
+function fmpSymbolFor(symbol, exch, kind){
+  if(kind==="crypto") return symbol + "USD";
+  if(kind!=="stk") return null;
+  if(exch==="US") return symbol;
+  const suf = SUFFIX[exch]; if(!suf) return null;
+  return (exch==="SEHK" ? symbol.padStart(4,"0") : symbol) + suf;
+}
 function parsePos(p){
   const d = String(p.contract_description||"");
   const at = d.lastIndexOf(" @");
   const descr = at>=0 ? d.slice(0,at) : d;
-  const exch = at>=0 ? d.slice(at+2).trim() : (p.asset_class==="CRYPTO" ? "" : "US");
+  const exch = at>=0 ? d.slice(at+2).trim() : "US";
   const symbol = descr.trim().split(/\s+/)[0] || "?";
   const m = descr.match(/([A-Z][a-z]{2}\d{1,2}'\d{2})\s+([\d.]+)\s+(PUT|CALL)/);
+  const kind = p.asset_class==="OPT" ? "opt" : p.asset_class==="CRYPTO" ? "crypto" : "stk";
   const rate = S.rates[p.currency] ?? (p.currency==="USD"?1:null);
   const usd = rate==null ? null : (p.market_value||0)*rate;
-  const kind = p.asset_class==="OPT" ? "opt" : p.asset_class==="CRYPTO" ? "crypto" : "stk";
-  let fmp = symbol;
-  if(kind==="stk" && exch!=="US"){ const suf = SUFFIX[exch]; if(suf){ fmp = (exch==="SEHK" ? symbol.padStart(4,"0") : symbol) + suf; } else fmp = null; }
-  if(kind!=="stk") fmp = null;
-  const costUsd = rate==null ? null : Math.abs(p.position||0) * (p.average_price||0) * (kind==="opt" ? 100 : 1) * rate;
+  const fmp = fmpSymbolFor(symbol, exch, kind);
+  const mult = kind==="opt" ? 100 : 1;
+  const prev = (p.market_value||0) - (p.daily_pnl||0);
   return {
-    ...p, symbol, exch, kind, usd,
+    ...p, symbol, exch, kind, usd, fmp,
     opt: m ? {expiry:m[1], strike:+m[2], type:m[3]} : null,
     upnlUsd: rate==null ? null : (p.unrealized_pnl||0)*rate,
     dpnlUsd: rate==null ? null : (p.daily_pnl||0)*rate,
     upnlPct: (p.average_price && p.position) ? (p.market_price - p.average_price)/p.average_price * (p.position<0?-1:1) : null,
-    fmp, isUS: kind==="stk" && exch==="US", costUsd
+    dayPct: (prev && p.position) ? (p.daily_pnl||0)/Math.abs(prev) : null,
+    isUS: kind==="stk" && exch==="US",
+    costUsd: rate==null ? null : Math.abs(p.position||0)*(p.average_price||0)*mult*rate
   };
 }
-function applyRates(){
-  S.rates = {USD:1, BASE:1};
-  for(const b of S.balances||[]) if(b.currency && b.exchange_rate) S.rates[b.currency] = b.exchange_rate;
-}
+function applyRates(){ S.rates = {USD:1, BASE:1}; for(const b of S.balances||[]) if(b.currency && b.exchange_rate) S.rates[b.currency] = b.exchange_rate; }
+const live = () => S.positions.filter(p=>p.position);
+const navValue = () => S.summary?.net_liquidation || null;
 
-/* ---------- header + tiles ---------- */
+/* ---------- header ---------- */
 function renderHeader(){
-  const nav = S.summary?.net_liquidation;
-  $("#h-nav").textContent = nav!=null ? fmtUsd(nav) : "—";
-  const live = S.positions.filter(p=>p.usd!=null);
+  const nav = navValue();
+  $("#h-nav").innerHTML = (nav!=null ? esc(nf(0).format(nav)) : "—") + '<span class="cur">USD</span>';
   const day = S.positions.length ? S.positions.reduce((a,p)=>a+(p.dpnlUsd||0),0) : null;
-  const dayEl = $("#h-day"); dayEl.textContent = day==null ? "Día —" : "Día " + fmtSigned(day) + (nav ? " ("+fmtPct(day/nav)+")" : ""); dayEl.className = "num " + cls(day);
-  const mtd = S.perf?.accounts?.account?.periods?.MTD?.cps; const mtdV = mtd && mtd.length ? mtd[mtd.length-1] : null;
-  const mEl = $("#h-mtd"); mEl.textContent = mtdV==null ? "Mes —" : "Mes " + fmtPct(mtdV); mEl.className = "num " + cls(mtdV);
+  const set = (id, label, pct) => { const el=$(id); el.textContent = pct==null ? label+" —" : `${label} ${fmtPct(pct)}`; el.className = "pill " + cls(pct); };
+  const per = S.perf?.accounts?.account?.periods || {};
+  const last = k => { const c = per[k]?.cps; return c && c.length ? c[c.length-1] : null; };
+  const dEl = $("#h-day"); dEl.textContent = day==null ? "Día —" : `Día ${fmtSigned(day)}${nav?" · "+fmtPct(day/nav):""}`; dEl.className = "pill " + cls(day);
+  set("#h-mtd", "Mes", last("MTD")); set("#h-ytd", "Año", last("YTD"));
   const ts = Math.max(...Object.values(S.stored).filter(Boolean), 0);
-  const f = $("#h-fresh");
-  if(S.ibErr){ f.textContent = "IB: " + errCopy(S.ibErr, "Interactive Brokers"); f.className="fresh stale"; }
-  else if(ts){ const age = Date.now()-ts; f.textContent = "Actualizado " + hhmm(ts); f.className = "fresh" + (age>5*60000?" stale":""); }
-  else { f.textContent = "Conectando con Interactive Brokers…"; f.className="fresh"; }
-  void live;
+  const f = $("#h-fresh"), dot = $("#dot");
+  if(S.ibErr){ f.textContent = "IB sin conexión"; dot.className = "dot err"; }
+  else if(ts){ const age = Date.now()-ts; f.textContent = (age>5*60000 ? "desactualizado · " : "") + hhmm(ts); dot.className = "dot " + (age>5*60000?"warn":"live"); }
+  else { f.textContent = "conectando…"; dot.className = "dot"; }
 }
-function renderTiles(){
-  const t = $$("#tiles .tile");
-  const nav = S.summary?.net_liquidation;
+function renderTape(){
+  const host = $("#tape"); const q = S.tape;
+  if(!q.length){ host.classList.add("empty"); host.innerHTML = TAPE.map(t=>`<div class="t"><b>${esc(t.n)}</b><span>—</span></div>`).join(""); return; }
+  host.classList.remove("empty");
+  host.innerHTML = TAPE.map(t => { const x = q.find(r=>r.symbol===t.s); if(!x) return `<div class="t"><b>${esc(t.n)}</b><span class="faint">—</span></div>`;
+    const c = x.changePercentage/100; return `<div class="t"><b>${esc(t.n)}</b><span>${esc(t.fx ? nf(4).format(x.price) : fmtNum(x.price, x.price<100?2:0))} <em class="d ${cls(c)}" style="font-style:normal">${esc(fmtPct(c,2))}</em></span></div>`; }).join("");
+}
+const TAPE = [{s:"^GSPC",n:"S&P 500"},{s:"^NDX",n:"NASDAQ 100"},{s:"^STOXX50E",n:"EURO STOXX 50"},{s:"^N225",n:"NIKKEI 225"},{s:"^HSI",n:"HANG SENG"},{s:"BTCUSD",n:"BITCOIN"},{s:"EURUSD",n:"EUR/USD",fx:true}];
+
+/* ---------- KPIs ---------- */
+function renderKpis(){
+  const k = $$("#kpis .kpi"); const nav = navValue();
   const day = S.positions.length ? S.positions.reduce((a,p)=>a+(p.dpnlUsd||0),0) : null;
   const base = (S.balances||[]).find(b=>b.currency==="BASE");
   const unreal = base ? base.unrealized_pnl : (S.positions.length ? S.positions.reduce((a,p)=>a+(p.upnlUsd||0),0) : null);
   const cash = S.summary?.total_cash_value;
   const mu = (S.summary?.maintenance_margin!=null && nav) ? S.summary.maintenance_margin/nav : null;
-  const set = (i, v, c) => { const el = t[i].querySelector(".v"); el.classList.remove("skel"); el.textContent = v; el.className = "v num " + (c||""); };
-  set(0, fmtSigned(day), cls(day));
-  set(1, fmtSigned(unreal), cls(unreal));
-  set(2, fmtUsd(cash));
-  set(3, mu==null ? "—" : fmtNum(mu*100,1)+" %", mu>0.5?"down":mu>0.35?"":"");
-  t[3].querySelector(".s").textContent = S.summary?.leverage ? `apalancamiento ${S.summary.leverage}×` : "mantenimiento / valor neto";
+  const set = (i, v, c, s) => { const el = k[i].querySelector(".v"); el.classList.remove("skel"); el.textContent = v; el.className = "v mono " + (c||""); if(s!=null) k[i].querySelector(".s").textContent = s; };
+  set(0, fmtSigned(day), cls(day), nav&&day!=null ? `${fmtPct(day/nav,2)} del valor neto` : null);
+  set(1, fmtSigned(unreal), cls(unreal), nav&&unreal!=null ? `${fmtPct(unreal/nav)} del valor neto` : null);
+  set(2, fmtUsd(cash), "", nav&&cash!=null ? `${fmtPct(cash/nav)} del valor neto` : null);
+  set(3, mu==null ? "—" : nf(1).format(mu*100)+" %", mu>0.5?"down":mu>0.35?"":"", S.summary?.leverage ? `apalancamiento ${S.summary.leverage}× · excedente ${fmtUsd(S.summary.excess_liquidity)}` : null);
+  const bar = k[3].querySelector(".bar i"); bar.style.width = (mu!=null ? Math.min(100, mu*100) : 0) + "%"; bar.style.background = mu>0.5 ? css("--down") : mu>0.35 ? css("--warn") : css("--accent");
 }
 
-/* ---------- sparkline ---------- */
-function drawSpark(){
-  const c = $("#spark"); const per = S.perf?.accounts?.account?.periods?.[S.period];
-  const foot = $("#spark-foot");
-  const dpr = window.devicePixelRatio||1; const W = c.clientWidth||320, H = 110;
-  c.width = W*dpr; c.height = H*dpr; const ctx = c.getContext("2d"); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
-  if(!per || !per.nav || per.nav.length<2){ foot.textContent = per ? "Serie muy corta para graficar." : "Sin datos de rendimiento todavía."; return; }
-  const nav = per.nav.map(Number), n = nav.length;
-  const mn = Math.min(...nav), mx = Math.max(...nav), pad = 8;
-  const x = i => pad + i*(W-2*pad)/(n-1), y = v => H-pad - (mx===mn?0.5:(v-mn)/(mx-mn))*(H-2*pad);
-  const css = getComputedStyle(document.documentElement);
-  const last = per.cps[per.cps.length-1]; const col = css.getPropertyValue(last>=0?"--up":"--down").trim(); const line = css.getPropertyValue("--line").trim();
-  ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.setLineDash([3,4]);
-  for(const g of [0.25,0.5,0.75]){ ctx.beginPath(); ctx.moveTo(pad, pad+g*(H-2*pad)); ctx.lineTo(W-pad, pad+g*(H-2*pad)); ctx.stroke(); }
+/* ---------- charts ---------- */
+function drawLine(c, vals, opts={}){
+  const dpr = window.devicePixelRatio||1; const W = c.clientWidth||320, H = c.clientHeight||150;
+  c.width = Math.max(1, W*dpr); c.height = Math.max(1, H*dpr); const ctx = c.getContext("2d"); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+  if(!vals || vals.length<2) return;
+  const n = vals.length, mn = Math.min(...vals), mx = Math.max(...vals), padX = 4, padT = 10, padB = 6;
+  const x = i => padX + i*(W-2*padX)/(n-1), y = v => H-padB - (mx===mn?0.5:(v-mn)/(mx-mn))*(H-padT-padB);
+  const col = opts.color || css("--accent");
+  ctx.strokeStyle = css("--line"); ctx.lineWidth = 1; ctx.setLineDash([2,5]);
+  for(const g of [0.25,0.5,0.75]){ const yy = padT + g*(H-padT-padB); ctx.beginPath(); ctx.moveTo(padX, yy); ctx.lineTo(W-padX, yy); ctx.stroke(); }
   ctx.setLineDash([]);
+  if(opts.ref!=null && opts.ref>=mn && opts.ref<=mx){ ctx.strokeStyle = css("--faint"); ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(padX, y(opts.ref)); ctx.lineTo(W-padX, y(opts.ref)); ctx.stroke(); ctx.setLineDash([]); }
   const grad = ctx.createLinearGradient(0,0,0,H); grad.addColorStop(0, col+"55"); grad.addColorStop(1, col+"00");
-  ctx.beginPath(); ctx.moveTo(x(0), y(nav[0])); for(let i=1;i<n;i++) ctx.lineTo(x(i), y(nav[i])); ctx.lineTo(x(n-1), H-pad); ctx.lineTo(x(0), H-pad); ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(x(0), y(nav[0])); for(let i=1;i<n;i++) ctx.lineTo(x(i), y(nav[i])); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
-  ctx.beginPath(); ctx.arc(x(n-1), y(nav[n-1]), 3.5, 0, Math.PI*2); ctx.fillStyle = col; ctx.fill();
-  const d0 = per.dates[0], d1 = per.dates[per.dates.length-1];
+  ctx.beginPath(); ctx.moveTo(x(0), y(vals[0])); for(let i=1;i<n;i++) ctx.lineTo(x(i), y(vals[i])); ctx.lineTo(x(n-1), H-padB); ctx.lineTo(x(0), H-padB); ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x(0), y(vals[0])); for(let i=1;i<n;i++) ctx.lineTo(x(i), y(vals[i])); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x(n-1), y(vals[n-1]), 3.5, 0, Math.PI*2); ctx.fillStyle = col; ctx.fill();
+  ctx.fillStyle = css("--muted"); ctx.font = `11px ${css("--font-mono")||"monospace"}`; ctx.textBaseline = "top"; ctx.textAlign = "left";
+  ctx.fillText(opts.fmt ? opts.fmt(mx) : String(mx), padX+2, 0); ctx.textBaseline = "bottom"; ctx.fillText(opts.fmt ? opts.fmt(mn) : String(mn), padX+2, H);
+}
+function drawSpark(){
+  const c = $("#spark"); const per = S.perf?.accounts?.account?.periods?.[S.period]; const foot = $("#spark-foot");
+  if(!per || !per.nav || per.nav.length<2){ drawLine(c, null); foot.innerHTML = `<span>${per ? "Serie muy corta para graficar." : "Sin datos de rendimiento todavía."}</span>`; return; }
+  const nav = per.nav.map(Number); const last = per.cps[per.cps.length-1];
+  drawLine(c, nav, {color: css(last>=0?"--up":"--down"), fmt: v => "US$ " + nf(0).format(v)});
   const fd = s => s ? `${s.slice(6,8)}/${s.slice(4,6)}` : "";
-  foot.innerHTML = `<span class="${cls(last)}">${esc(fmtPct(last,2))}</span> · ${esc(fd(d0))} → ${esc(fd(d1))} · mín ${esc(fmtUsd(mn))} · máx ${esc(fmtUsd(mx))}`;
+  foot.innerHTML = `<span><b class="${cls(last)} mono">${esc(fmtPct(last,2))}</b> en el período</span><span class="mono">${esc(fd(per.dates[0]))} → ${esc(fd(per.dates[per.dates.length-1]))}</span>`;
   $("#spark-sub").textContent = `Rendimiento ${S.perf?.portfolio_measure==="MWR"?"ponderado por dinero (MWR)":"ponderado por tiempo (TWR)"}, moneda base USD`;
 }
 
-/* ---------- positions tables ---------- */
+/* ---------- allocation ---------- */
+const PALETTE = ["#5b9cff","#2ecc80","#f0b35a","#c084fc","#f472b6","#38bdf8","#a3e635","#fb923c","#94a3b8"];
+function renderAlloc(){
+  const host = $("#alloc"); const a = S.alloc?.allocations; if(!a){ return; }
+  const items = (k) => (a[k]?.long_positions?.items||[]).slice().sort((x,y)=>y.nav-x.nav);
+  const bar = (list, title) => {
+    const tot = list.reduce((s,i)=>s+Math.max(i.nav,0),0)||1;
+    return `<div><div class="eyebrow" style="margin-bottom:6px">${esc(title)}</div><div class="sbar">${list.map((i,n)=>`<i style="width:${Math.max(0,i.nav/tot*100)}%;background:${PALETTE[n%PALETTE.length]}" title="${esc(i.name)}"></i>`).join("")}</div>
+      <div class="legend">${list.slice(0,6).map((i,n)=>`<span style="--c:${PALETTE[n%PALETTE.length]}">${esc(trName(i.name))} <b>${esc(nf(0).format(i.nav/tot*100))}%</b></span>`).join("")}</div></div>`;
+  };
+  const sectors = items("SECTOR").filter(i=>i.id!=="CA"); const stot = sectors.reduce((s,i)=>s+i.nav,0)||1;
+  host.innerHTML = bar(items("ASSET_CLASS"), "Clase de activo") + bar(items("REGION"), "Región") +
+    `<div><div class="eyebrow" style="margin:10px 0 6px">Sectores (sin efectivo)</div><div class="rank">${sectors.slice(0,7).map((i,n)=>`<div class="r"><span>${esc(trName(i.name))}</span><span class="mono">${esc(fmtUsd(i.nav))} · ${esc(nf(1).format(i.nav/stot*100))}%</span><div class="bar"><i style="width:${i.nav/stot*100}%;background:${PALETTE[n%PALETTE.length]}"></i></div></div>`).join("")}</div></div>`;
+  $("#alloc-sub").textContent = `IB · ${S.alloc.realtime ? "tiempo real" : "cierre anterior"}`;
+}
+const TR = {"Equities":"Acciones","Fixed Income":"Renta fija","Cash":"Efectivo","Europe":"Europa","North America":"Norteamérica","Asia":"Asia","Oceania":"Oceanía","South America":"Sudamérica","Broad":"Diversificado (ETF)","Consumer Cyclicals":"Consumo cíclico","Consumer Non-Cyclicals":"Consumo básico","Energy":"Energía","Financials":"Financiero","Government":"Deuda pública","Healthcare":"Salud","Industrial":"Industrial","Technology":"Tecnología","Telecomm":"Telecomunicaciones","Basic Materials":"Materiales","Utilities":"Servicios públicos","Real Estate":"Inmobiliario","Stocks":"Acciones","ETFs":"ETFs","Options":"Opciones","Crypto":"Cripto"};
+const trName = n => TR[n] || n;
+
+/* ---------- positions list ---------- */
+function posName(p){ const q = p.fmp && S.quotes[p.fmp]; if(q?.name) return q.name; if(p.kind==="opt") return `${p.opt?.type==="PUT"?"Put":"Call"} ${fmtNum(p.opt?.strike)} · vence ${p.opt?.expiry||"?"}`; return p.exch==="US" ? "" : `${p.exch} · ${p.currency}`; }
 function posRow(p){
-  const tr = document.createElement("tr"); tr.className = "row"; tr.tabIndex = 0;
-  const name = p.kind==="opt" ? `${p.symbol} ${p.opt?p.opt.type==="PUT"?"PUT":"CALL":""} ${p.opt?fmtNum(p.opt.strike):""}` : p.symbol;
-  const sub = p.kind==="opt" ? `vence ${p.opt?.expiry||""} · ${p.exch}` : (p.exch==="US" ? (p.currency||"USD") : `${p.exch} · ${p.currency}`);
-  tr.innerHTML = `<td class="sym">${esc(name)}<small>${esc(sub)}</small></td>
-    <td class="num">${esc(fmtNum(p.position, p.kind==="crypto"?4:0))}</td>
-    <td class="num">${esc(fmtNum(p.market_price, p.market_price<10?3:2))}</td>
-    <td class="num">${esc(fmtUsd(p.usd))}</td>
-    <td class="num ${cls(p.unrealized_pnl)}">${esc(p.kind==="opt" ? fmtSigned(p.upnlUsd) : fmtPct(p.upnlPct))}</td>
-    <td class="num ${cls(p.daily_pnl)}">${esc(fmtSigned(p.dpnlUsd))}</td>`;
-  const det = document.createElement("tr"); det.className = "detail"; det.hidden = true;
-  const td = document.createElement("td"); td.colSpan = 6;
-  td.innerHTML = `<div class="detail-grid">
-      <div>Costo promedio<b>${esc(fmtNum(p.average_price, 2))} ${esc(p.currency)}</b></div>
-      <div>Valor en ${esc(p.currency)}<b>${esc(fmtNum(p.market_value,0))}</b></div>
-      <div>P&amp;L no realizado<b class="${cls(p.unrealized_pnl)}">${esc(fmtSigned(p.upnlUsd))}</b></div>
-      <div>Costo total USD<b>${esc(fmtUsd(p.costUsd))}</b></div>
-      <div>Contrato IB<b>${esc(p.contract_id)}</b></div>
-      ${p.fmp ? `<div>Símbolo FMP<b>${esc(p.fmp)}</b></div>` : ""}
-    </div>
-    <div class="chips"></div>`;
-  const chips = td.querySelector(".chips");
-  const ask = (label, q) => { const b=document.createElement("button"); b.className="chip"; b.textContent=label; b.onclick=(ev)=>{ev.stopPropagation(); askInChat(q);}; chips.append(b); };
-  const sym = p.fmp || p.symbol;
-  if(p.kind==="stk" && p.fmp) ask("Analizar con criterios de valor", `Analizá ${sym} con criterios de valor: calidad del negocio, múltiplos actuales, DCF de FMP y qué dicen los insiders. Tengo ${fmtNum(p.position,0)} acciones a costo promedio ${fmtNum(p.average_price,2)} ${p.currency}.`);
-  if(p.isUS) ask("Insiders y noticias", `¿Qué hicieron los insiders de ${sym} últimamente y qué noticias relevantes hubo? Resumí en español con fechas.`);
-  if(p.kind==="opt") ask("Explicar esta opción", `Explicame mi posición en ${name} (vence ${p.opt?.expiry}, ${p.position<0?"vendida":"comprada"}, ${Math.abs(p.position)} contratos): qué riesgo tengo, qué pasa si el subyacente sube o baja, y cómo se relaciona con mis acciones de ${p.symbol} si las tengo.`);
-  det.append(td);
-  tr.onclick = () => { det.hidden = !det.hidden; };
-  tr.onkeydown = e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); det.hidden=!det.hidden; } };
-  return [tr, det];
+  const nav = navValue(); const w = nav && p.usd!=null ? Math.abs(p.usd)/nav : null;
+  const q = p.fmp && S.quotes[p.fmp]; const dayPct = q ? q.changePercentage/100 : p.dayPct;
+  const d = document.createElement("div"); d.className = "row"; d.tabIndex = 0; d.setAttribute("role","button");
+  const title = p.kind==="opt" ? `${p.symbol} ${p.opt?.type==="PUT"?"P":"C"}${fmtNum(p.opt?.strike)}` : p.symbol;
+  d.innerHTML = `<div class="c1"><div class="sym">${esc(title)}${p.kind==="opt"?`<span class="tag ${p.position<0?"sell":"buy"}">${p.position<0?"vendida":"comprada"}</span>`:""}${p.kind==="stk"&&p.exch!=="US"?`<span class="tag">${esc(p.currency)}</span>`:""}</div><div class="name">${esc(posName(p))}</div><div class="qty">${esc(fmtNum(p.position, p.kind==="crypto"?4:0))} × ${esc(px(p.market_price))} ${esc(p.currency)}</div></div>
+    <div class="c3">${esc(fmtUsd(p.usd))}<small>${w!=null?esc(nf(1).format(w*100))+" % de la cartera":""}</small></div>
+    <div class="c2"><span>${esc(px(p.market_price))}</span><span class="${cls(dayPct)}">${esc(fmtPct(dayPct,2))}</span></div>
+    <div class="c4 ${cls(p.unrealized_pnl)}">${esc(fmtSigned(p.upnlUsd))}${p.kind!=="opt"&&p.upnlPct!=null?` <span class="muted">(${esc(fmtPct(p.upnlPct))})</span>`:""}<br><span class="${cls(p.daily_pnl)}" style="font-size:11px">día ${esc(fmtSigned(p.dpnlUsd))}</span></div>
+    <div class="w"><i style="width:${w!=null?Math.min(100,w*100*2):0}%"></i></div>`;
+  const open = () => openPosSheet(p);
+  d.onclick = open; d.onkeydown = e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+  return d;
 }
 function renderPositions(){
-  const live = S.positions.filter(p => p.position);
-  const closed = S.positions.length - live.length;
-  const groups = {stk:[], opt:[], crypto:[]};
-  for(const p of live) groups[p.kind].push(p);
-  for(const k of Object.keys(groups)) groups[k].sort((a,b)=>Math.abs(b.usd||0)-Math.abs(a.usd||0));
-  const fill = (sel, arr) => { const tb = $(sel+" tbody"); tb.innerHTML=""; for(const p of arr) tb.append(...posRow(p)); };
-  fill("#tbl-stk", groups.stk); fill("#tbl-opt", groups.opt); fill("#tbl-crypto", groups.crypto);
-  $("#panel-crypto").hidden = groups.crypto.length===0;
-  const sum = arr => arr.reduce((a,p)=>a+(p.usd||0),0);
-  $("#cnt-stk").textContent = groups.stk.length ? `${groups.stk.length} · ${fmtUsd(sum(groups.stk))}` : "sin posiciones";
-  $("#cnt-opt").textContent = groups.opt.length ? `${groups.opt.length} contratos · neto ${fmtUsd(sum(groups.opt))}` + (closed?` · ${closed} cerrada${closed>1?"s":""} hoy`:"") : "sin opciones";
-}
-function renderCcy(){
-  const host = $("#bars-ccy"); host.innerHTML = "";
-  const rows = (S.balances||[]).filter(b=>b.currency!=="BASE").map(b=>({c:b.currency, usd:(b.net_liquidation_value||0)*(b.exchange_rate||0)})).filter(r=>Math.abs(r.usd)>1).sort((a,b)=>b.usd-a.usd);
-  const tot = rows.reduce((a,r)=>a+Math.max(r.usd,0),0) || 1;
-  for(const r of rows){
-    const d = document.createElement("div"); d.className="bar";
-    d.innerHTML = `<span>${esc(r.c)}</span><i style="width:${Math.max(2, r.usd/tot*100)}%"></i><span class="num">${esc(fmtUsd(r.usd))}</span>`;
-    host.append(d);
-  }
-  if(!rows.length) host.innerHTML = `<div class="skel"></div>`;
+  const host = $("#pos-list"); const all = live();
+  const groups = {stk:all.filter(p=>p.kind==="stk"), opt:all.filter(p=>p.kind==="opt"), crypto:all.filter(p=>p.kind==="crypto")};
+  const arr = groups[S.group].slice();
+  const key = S.sort==="day" ? (p=>p.dpnlUsd||0) : S.sort==="pnl" ? (p=>p.upnlUsd||0) : (p=>Math.abs(p.usd||0));
+  arr.sort((a,b)=>key(b)-key(a));
+  host.innerHTML = "";
+  $$("#pos-seg button").forEach(b=>{ const n = groups[b.dataset.g].length; b.textContent = ({stk:"Acciones",opt:"Opciones",crypto:"Cripto"})[b.dataset.g] + (n?` ${n}`:""); b.hidden = b.dataset.g!=="stk" && !n && S.positions.length>0; });
+  if(!S.positions.length){ host.innerHTML = `<div class="skel"></div><div class="skel" style="width:80%;margin-top:10px"></div>`; return; }
+  if(!arr.length){ host.innerHTML = `<div class="empty">Sin posiciones en este grupo.</div>`; $("#pos-sub").textContent=""; return; }
+  const sum = arr.reduce((s,p)=>s+(p.usd||0),0), day = arr.reduce((s,p)=>s+(p.dpnlUsd||0),0), closed = S.positions.length - all.length;
+  $("#pos-sub").innerHTML = `${arr.length} ${S.group==="opt"?"contratos":"posiciones"} · ${esc(fmtUsd(sum))} · día <span class="${cls(day)} mono">${esc(fmtSigned(day))}</span>${closed?` · ${closed} cerrada${closed>1?"s":""} hoy`:""}`;
+  for(const p of arr) host.append(posRow(p));
 }
 function renderAcct(){
-  const s = S.summary; const g = $("#acct-grid"); if(!s){ g.innerHTML = `<div class="skel"></div><div class="skel"></div>`; return; }
+  const s = S.summary; const g = $("#acct-grid"); if(!s) return;
   const items = [["Valor neto", fmtUsd(s.net_liquidation)],["Poder de compra", fmtUsd(s.buying_power)],["Fondos disponibles", fmtUsd(s.available_funds)],["Liquidez excedente", fmtUsd(s.excess_liquidity)],["Margen inicial", fmtUsd(s.initial_margin)],["Margen de mantenimiento", fmtUsd(s.maintenance_margin)],["Valor bruto posiciones", fmtUsd(s.gross_position_value)],["Dividendos acumulados", fmtUsd(s.dividends)]];
-  g.innerHTML = items.map(([k,v])=>`<div>${esc(k)}<b>${esc(v)}</b></div>`).join("");
+  const ccy = (S.balances||[]).filter(b=>b.currency!=="BASE" && Math.abs(b.cash_balance||0)>1).map(b=>`${b.currency} ${fmtNum(b.cash_balance,0)}`).join(" · ");
+  g.innerHTML = items.map(([k,v])=>`<div>${esc(k)}<b>${esc(v)}</b></div>`).join("") + (ccy ? `<div style="grid-column:1/-1">Efectivo por moneda<b style="white-space:normal">${esc(ccy)}</b></div>` : "");
 }
-function renderAll(){ renderHeader(); renderTiles(); renderPositions(); renderCcy(); renderAcct(); drawSpark(); }
+function renderAll(){ renderHeader(); renderKpis(); renderPositions(); renderAcct(); drawSpark(); renderAlloc(); renderTape(); }
 
-/* ---------- IB watches ---------- */
-function watchIB(){
+/* ---------- position detail sheet ---------- */
+async function openPosSheet(p){
+  const sheet = $("#sheet-pos"), card = $("#sheet-pos-card"); sheet.hidden = false;
+  const q = p.fmp && S.quotes[p.fmp]; const name = posName(p);
+  const dayPct = q ? q.changePercentage/100 : p.dayPct;
+  card.innerHTML = `<div class="grip"></div>
+    <div class="card-head"><h3>${esc(p.symbol)} <small>${esc(name)}</small></h3><button class="icon-btn" id="sheet-pos-close" aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="nav-row" style="margin:0 0 6px"><div class="nav-big mono" style="font-size:26px">${esc(px(p.market_price))}<span class="cur">${esc(p.currency)}</span></div><div class="nav-meta"><span class="pill ${cls(dayPct)}">${esc(fmtPct(dayPct,2))} hoy</span>${q?.priceAvg200?`<span class="pill">${esc(p.market_price>q.priceAvg200?"sobre":"bajo")} media 200d</span>`:""}</div></div>
+    <canvas class="chart sm" id="pos-chart" aria-label="Precio últimos tres meses"></canvas>
+    <div class="chart-foot" id="pos-chart-foot"><span>Cargando histórico de IB…</span></div>
+    ${q&&q.yearLow&&q.yearHigh?`<div class="range"><div class="eyebrow" style="margin-bottom:8px">Rango 52 semanas</div><div class="track"><span class="mark" style="left:${Math.max(0,Math.min(100,(p.market_price-q.yearLow)/(q.yearHigh-q.yearLow)*100))}%"></span></div><div class="lbl"><span>${esc(px(q.yearLow))}</span><span>${esc(nf(0).format((p.market_price/q.yearHigh-1)*100))} % desde el máximo</span><span>${esc(px(q.yearHigh))}</span></div></div>`:""}
+    <div class="kv">
+      <div>Cantidad<b>${esc(fmtNum(p.position, p.kind==="crypto"?4:0))}</b></div>
+      <div>Costo promedio<b>${esc(px(p.average_price))} ${esc(p.currency)}</b></div>
+      <div>Valor USD<b>${esc(fmtUsd(p.usd))}</b></div>
+      <div>Costo USD<b>${esc(fmtUsd(p.costUsd))}</b></div>
+      <div>P&amp;L no realizado<b class="${cls(p.unrealized_pnl)}">${esc(fmtSigned(p.upnlUsd))}${p.upnlPct!=null&&p.kind!=="opt"?" · "+esc(fmtPct(p.upnlPct)):""}</b></div>
+      <div>P&amp;L del día<b class="${cls(p.daily_pnl)}">${esc(fmtSigned(p.dpnlUsd))}</b></div>
+      ${q?`<div>Media 50d / 200d<b>${esc(px(q.priceAvg50))} / ${esc(px(q.priceAvg200))}</b></div><div>Capitalización<b>${esc(q.marketCap?compactUsd(q.marketCap, p.currency):"—")}</b></div>`:""}
+      <div>Bolsa<b>${esc(p.exch)}</b></div><div>Contrato IB<b>${esc(p.contract_id)}</b></div>${p.fmp?`<div>Símbolo FMP<b>${esc(p.fmp)}</b></div>`:""}
+    </div>
+    <div class="chips" id="pos-actions"></div>`;
+  $("#sheet-pos-close").onclick = () => { sheet.hidden = true; };
+  const chips = $("#pos-actions");
+  const ask = (label, qq) => { const b=document.createElement("button"); b.className="chip on"; b.textContent=label; b.onclick=()=>{ sheet.hidden=true; askInChat(qq); }; chips.append(b); };
+  const sym = p.fmp || p.symbol;
+  if(p.kind==="stk" && p.fmp) ask("Analizar con criterios de valor", `Analizá ${sym} (${name||p.symbol}) con criterios de valor: calidad del negocio, múltiplos actuales, DCF de FMP y qué dicen los insiders si aplica. Tengo ${fmtNum(p.position,0)} acciones a costo promedio ${px(p.average_price)} ${p.currency}.`);
+  if(p.isUS) ask("Insiders y noticias", `¿Qué hicieron los insiders de ${sym} últimamente y qué noticias relevantes hubo? Resumí en español con fechas y enlaces.`);
+  if(p.kind==="opt") ask("Explicar esta opción", `Explicame mi posición en ${p.symbol} ${p.opt?.type} ${p.opt?.strike} que vence ${p.opt?.expiry} (${p.position<0?"vendida":"comprada"}, ${Math.abs(p.position)} contratos): riesgo, qué pasa si el subyacente sube o baja, y cómo se relaciona con mis acciones de ${p.symbol} si las tengo.`);
+  if(p.kind==="crypto") ask("Contexto de mercado", `Dame contexto actual de ${sym}: precio vs. medias de 50 y 200 días, rango de 52 semanas y noticias recientes. Sin recomendaciones.`);
+  // price history
+  const foot = $("#pos-chart-foot"); const c = $("#pos-chart");
+  if(!S.mcp || p.kind==="opt"){ foot.innerHTML = `<span>${p.kind==="opt"?"Sin gráfico para opciones; mirá el subyacente.":"Sin conexión a IB."}</span>`; drawLine(c,null); return; }
+  try{
+    const input = {contract_id:p.contract_id, security_type:p.asset_class, step:"ONE_DAY", period:"THREE_MONTHS", outside_rth:false};
+    if(p.kind==="stk" && p.exch!=="US") input.exchange = p.exch;
+    const r = await S.mcp.callTool(S.ib, "get_price_history", input, {cache:{staleTime:600000, gcTime:3600000}});
+    const h = r.payload; const close = (h?.close||[]).map(Number).filter(v=>!isNaN(v));
+    if(sheet.hidden) return;
+    if(close.length<2){ foot.innerHTML = `<span>IB no devolvió histórico para este contrato.</span>`; drawLine(c,null); return; }
+    const chg = close[close.length-1]/close[0]-1;
+    drawLine(c, close, {color: css(chg>=0?"--up":"--down"), ref: p.average_price, fmt: v => px(v)});
+    foot.innerHTML = `<span><b class="${cls(chg)} mono">${esc(fmtPct(chg,1))}</b> en 3 meses · línea punteada: tu costo promedio</span><span class="mono">${esc(String(h.time?.[0]||"").slice(0,10))} → ${esc(String(h.time?.[h.time.length-1]||"").slice(0,10))}</span>`;
+  }catch(e){ foot.innerHTML = `<span>${esc(errCopy(e,"Interactive Brokers"))}</span>`; drawLine(c,null); }
+}
+function compactUsd(v, cur){ const u = cur==="USD"?"US$ ":cur+" "; return Math.abs(v)>=1e12 ? u+nf(2).format(v/1e12)+" B" : Math.abs(v)>=1e9 ? u+nf(1).format(v/1e9)+" mM" : u+nf(0).format(v/1e6)+" M"; }
+
+/* ---------- IB + FMP watches ---------- */
+function watchAll(){
   const mcp = S.mcp; if(!mcp) return;
-  const onErr = (what) => (e) => {
-    S.ibErr = e;
-    if(["needs_reauth","server_not_connected","not_in_manifest","blocked_by_policy","approval_required","consent_required"].includes(e.code)){
-      stateBox($("#cartera-state"), errCopy(e, "Interactive Brokers"), "err", e.code==="approval_required"||e.code==="consent_required" ? {label:"Permitir y cargar", fn:loadIBOnce} : null);
-    } else { stateBox($("#cartera-state"), errCopy(e, "Interactive Brokers") + " Se muestran los últimos datos recibidos.", "warn"); }
+  const onErr = (e) => {
+    S.ibErr = e; log(`IB error ${e.code}: ${e.message||""}`);
+    const fatal = ["needs_reauth","server_not_connected","not_in_manifest","blocked_by_policy","approval_required","consent_required","selection_required"].includes(e.code);
+    stateBox($("#cartera-state"), errCopy(e, "Interactive Brokers") + (fatal?"":" Se muestran los últimos datos recibidos."), fatal?"err":"warn", fatal ? {label:"Reintentar", fn:refreshNow} : null);
     renderHeader();
   };
   const ok = (key, fn) => (ev) => {
-    if(ev.type==="error"){ onErr(key)(ev.error); return; }
-    S.ibErr = null; $("#cartera-state").innerHTML = "";
+    if(ev.type==="error"){ onErr(ev.error); return; }
+    S.ibErr = null; $("#cartera-state").hidden = true;
     S.stored[key] = ev.result.cache?.storedAt || Date.now();
-    fn(ev.result.payload);
-    renderAll();
+    try{ fn(ev.result.payload); }catch(e){ log(`render ${key}: ${e.message}`); }
+    renderAll(); ensureQuoteWatch();
   };
   const opts = {refetchInterval:60000, cache:{staleTime:20000, gcTime:3600000}};
-  mcp.watchTool(IB, "get_account_balances", null, ok("bal", p => { S.balances = p?.balances || []; applyRates(); S.positions = S.positions.map(x => parsePos(x)); }), opts);
-  mcp.watchTool(IB, "get_account_positions", null, ok("pos", p => { S.positions = (p?.positions || []).map(parsePos); }), opts);
-  mcp.watchTool(IB, "get_account_summary", null, ok("sum", p => { S.summary = p || null; }), opts);
-  mcp.watchTool(IB, "get_pa_performance_all_periods", null, ok("perf", p => { S.perf = p || null; }), {refetchInterval:300000, cache:{staleTime:120000, gcTime:3600000}});
+  mcp.watchTool(S.ib, "get_account_balances", null, ok("bal", p => { S.balances = p?.balances || []; applyRates(); S.positions = S.positions.map(parsePos); }), opts);
+  mcp.watchTool(S.ib, "get_account_positions", null, ok("pos", p => { S.positions = (p?.positions || []).map(parsePos); }), opts);
+  mcp.watchTool(S.ib, "get_account_summary", null, ok("sum", p => { S.summary = p || null; }), opts);
+  mcp.watchTool(S.ib, "get_pa_performance_all_periods", null, ok("perf", p => { S.perf = p || null; }), {refetchInterval:300000, cache:{staleTime:120000, gcTime:3600000}});
+  mcp.watchTool(S.ib, "get_pa_allocation", {type:"ALL"}, ok("alloc", p => { S.alloc = p || null; }), {refetchInterval:300000, cache:{staleTime:120000, gcTime:3600000}});
+  mcp.watchTool(S.fmp, "quote", {endpoint:"batch-quote", symbols:TAPE.map(t=>t.s)}, ev => {
+    if(ev.type==="error"){ log(`FMP tape ${ev.error.code}`); if(["needs_reauth","server_not_connected","not_in_manifest"].includes(ev.error.code)) stateBox($("#cartera-state"), errCopy(ev.error,"FMP"), "warn"); return; }
+    S.tape = Array.isArray(ev.result.payload) ? ev.result.payload : []; renderTape();
+  }, {refetchInterval:60000, cache:{staleTime:30000, gcTime:3600000}});
 }
-async function loadIBOnce(){
-  const mcp = S.mcp; if(!mcp) return;
-  try{
-    const r = await mcp.callTool(IB, "get_account_summary", {}, {cache:{refresh:true}});
-    S.summary = r.payload; S.stored.sum = Date.now(); S.ibErr=null; $("#cartera-state").innerHTML="";
-    await mcp.invalidate(IB);
-    renderAll();
-  }catch(e){ stateBox($("#cartera-state"), errCopy(e,"Interactive Brokers"), "err"); }
+function ensureQuoteWatch(){
+  if(!S.mcp) return;
+  const syms = Array.from(new Set(live().map(p=>p.fmp).filter(Boolean))).sort();
+  const key = syms.join(","); if(key===S.quoteKey || !syms.length) return;
+  S.quoteKey = key; if(S.unsubQuotes) S.unsubQuotes();
+  S.unsubQuotes = S.mcp.watchTool(S.fmp, "quote", {endpoint:"batch-quote", symbols:syms}, ev => {
+    if(ev.type==="error"){ log(`FMP quotes ${ev.error.code}: ${ev.error.message||""}`); return; }
+    const arr = Array.isArray(ev.result.payload) ? ev.result.payload : [];
+    S.quotes = {}; for(const q of arr) S.quotes[q.symbol] = q;
+    S.stored.fmp = ev.result.cache?.storedAt || Date.now(); renderPositions();
+  }, {refetchInterval:60000, cache:{staleTime:30000, gcTime:3600000}});
+}
+async function refreshNow(){
+  if(!S.mcp) return; const b = $("#btn-refresh"); b.disabled = true;
+  try{ await S.mcp.invalidate(S.ib); await S.mcp.invalidate(S.fmp, "quote"); }catch(e){ log("invalidate: "+(e.code||e.message)); }
+  setTimeout(()=>{ b.disabled=false; }, 1500);
 }
 
 /* ---------- FMP helpers for the chat tools ---------- */
-async function fmp(tool, input, signal){
-  const r = await S.mcp.callTool(FMP, tool, input, {signal, cache:{staleTime:120000, gcTime:1800000}});
-  return r.payload;
-}
+async function fmp(tool, input, signal){ const r = await S.mcp.callTool(S.fmp, tool, input, {signal, cache:{staleTime:120000, gcTime:1800000}}); return r.payload; }
 const arr = p => Array.isArray(p) ? p : (p && Array.isArray(p.data) ? p.data : (p ? [p] : []));
 const first = p => arr(p)[0] || null;
 function pick(o, keys){ const out={}; for(const k of keys){ if(o && o[k]!=null) out[k]=typeof o[k]==="number"?r4(o[k]):o[k]; } return out; }
 const TX_ES = {"P-Purchase":"Compra en mercado","S-Sale":"Venta en mercado","M-Exempt":"Ejercicio de opciones/RSU","A-Award":"Otorgamiento","F-InKind":"Retención por impuestos","G-Gift":"Donación","D-Return":"Devolución","C-Conversion":"Conversión","X-InTheMoney":"Ejercicio ITM","J-Other":"Otra","W-Will":"Herencia","I-Discretionary":"Discrecional","":"Sin código"};
 const txEs = t => TX_ES[t] || t || "—";
+const symList = (v, max) => (Array.isArray(v)?v:String(v||"").split(",")).map(s=>String(s).trim().toUpperCase()).filter(Boolean).slice(0,max);
 
 function portfolioForChat(){
-  const live = S.positions.filter(p=>p.position);
-  const stk = live.filter(p=>p.kind!=="opt").sort((a,b)=>Math.abs(b.usd||0)-Math.abs(a.usd||0)).map(p=>({simbolo_ib:p.symbol, simbolo_fmp:p.fmp, bolsa:p.exch, tipo:p.kind==="crypto"?"cripto":"accion/ETF", cantidad:r2(p.position), precio:r2(p.market_price), moneda:p.currency, valor_usd:Math.round(p.usd||0), pnl_no_realizado_pct:r4(p.upnlPct), pnl_dia_usd:Math.round(p.dpnlUsd||0)}));
-  const opt = live.filter(p=>p.kind==="opt").map(p=>({subyacente:p.symbol, tipo:p.opt?.type, strike:p.opt?.strike, vence:p.opt?.expiry, contratos:p.position, posicion:p.position<0?"vendida":"comprada", valor_usd:Math.round(p.usd||0), pnl_no_realizado_usd:Math.round(p.upnlUsd||0)}));
+  const all = live();
+  const stk = all.filter(p=>p.kind!=="opt").sort((a,b)=>Math.abs(b.usd||0)-Math.abs(a.usd||0)).map(p=>({simbolo_ib:p.symbol, simbolo_fmp:p.fmp, nombre:S.quotes[p.fmp]?.name||null, bolsa:p.exch, tipo:p.kind==="crypto"?"cripto":"accion/ETF", cantidad:r2(p.position), precio:r2(p.market_price), moneda:p.currency, costo_promedio:r2(p.average_price), valor_usd:Math.round(p.usd||0), peso:navValue()?r4(Math.abs(p.usd||0)/navValue()):null, pnl_no_realizado_pct:r4(p.upnlPct), pnl_dia_usd:Math.round(p.dpnlUsd||0)}));
+  const opt = all.filter(p=>p.kind==="opt").map(p=>({subyacente:p.symbol, tipo:p.opt?.type, strike:p.opt?.strike, vence:p.opt?.expiry, contratos:p.position, posicion:p.position<0?"vendida":"comprada", valor_usd:Math.round(p.usd||0), pnl_no_realizado_usd:Math.round(p.upnlUsd||0)}));
   const s = S.summary||{};
-  return {fecha:new Date().toISOString().slice(0,10), moneda_base:"USD", valor_neto:Math.round(s.net_liquidation||0), efectivo:Math.round(s.total_cash_value||0), margen_mantenimiento:Math.round(s.maintenance_margin||0), apalancamiento:s.leverage, pnl_dia_usd:Math.round(live.reduce((a,p)=>a+(p.dpnlUsd||0),0)), acciones:stk, opciones:opt, actualizado:S.stored.pos?new Date(S.stored.pos).toISOString():null};
+  return {fecha:new Date().toISOString().slice(0,10), moneda_base:"USD", valor_neto:Math.round(s.net_liquidation||0), efectivo:Math.round(s.total_cash_value||0), margen_mantenimiento:Math.round(s.maintenance_margin||0), apalancamiento:s.leverage, pnl_dia_usd:Math.round(all.reduce((a,p)=>a+(p.dpnlUsd||0),0)), acciones:stk, opciones:opt, actualizado:S.stored.pos?new Date(S.stored.pos).toISOString():null};
 }
 
 function chatTools(signal){
   const t = [
-    { name:"mi_cartera", description:"Devuelve la cartera actual del usuario en Interactive Brokers: valor neto, efectivo, margen, acciones/ETFs con símbolo FMP, cantidad, valor en USD y P&L, y opciones abiertas. Usala antes de opinar sobre la cartera.",
-      execute: async () => { if(!S.positions.length && S.mcp){ const r = await S.mcp.callTool(IB,"get_account_positions",{}, {signal}); S.positions=(r.payload?.positions||[]).map(parsePos); } return portfolioForChat(); } },
-    { name:"buscar_empresas", description:"Screener de FMP. Filtra empresas por bolsa, sector, industria y capitalización mínima en USD. Devuelve hasta 30 con símbolo, nombre, capitalización, precio, industria y beta. Usá exchange 'NYSE,NASDAQ' para EE.UU.; 'PAR','XETRA','AMS','LSE','SIX','MIL','MCE' para Europa.",
-      inputSchema:{type:"object", properties:{exchange:{type:"string",description:"Códigos separados por coma. Por defecto NYSE,NASDAQ"}, sector:{type:"string",description:"Ej. Industrials, Technology, Healthcare, Consumer Defensive, Financial Services"}, industry:{type:"string"}, marketCapMin:{type:"number",description:"USD, por defecto 2e9"}, dividendMin:{type:"number"}, limit:{type:"number"}}},
+    { name:"mi_cartera", description:"Devuelve la cartera actual del usuario en Interactive Brokers: valor neto, efectivo, margen, acciones/ETFs con símbolo FMP, peso, valor en USD y P&L, y opciones abiertas. Usala antes de opinar sobre la cartera.",
+      execute: async () => { if(!S.positions.length){ const r = await S.mcp.callTool(S.ib,"get_account_positions",{}, {signal}); S.positions=(r.payload?.positions||[]).map(parsePos); } return portfolioForChat(); } },
+    { name:"buscar_empresas", description:"Screener de FMP. Filtra empresas por bolsa, sector, industria y capitalización mínima en USD. Devuelve hasta 30 con símbolo, nombre, capitalización, precio, industria y beta. exchange por defecto 'NYSE,NASDAQ'; para Europa usá 'PAR','XETRA','AMS','LSE','SIX','MIL','MCE'.",
+      inputSchema:{type:"object", properties:{exchange:{type:"string"}, sector:{type:"string",description:"Ej. Industrials, Technology, Healthcare, Consumer Defensive, Consumer Cyclical, Financial Services, Basic Materials, Energy, Utilities, Communication Services, Real Estate"}, industry:{type:"string"}, marketCapMin:{type:"number",description:"USD, por defecto 2e9"}, dividendMin:{type:"number"}, limit:{type:"number"}}},
       execute: async (i) => { const p = await fmp("search", {endpoint:"search-company-screener", exchange:String(i.exchange||"NYSE,NASDAQ"), sector:i.sector?String(i.sector):undefined, industry:i.industry?String(i.industry):undefined, marketCapMoreThan:Number(i.marketCapMin||2e9), dividendMoreThan:i.dividendMin!=null?Number(i.dividendMin):undefined, isActivelyTrading:true, isEtf:false, isFund:false, limit:Math.min(Number(i.limit||30),60)}, signal);
         return {fuente:"FMP screener", resultados: arr(p).map(c=>({simbolo:c.symbol, nombre:c.companyName, cap_usd:c.marketCap, precio:c.price, industria:c.industry, sector:c.sector, beta:c.beta, bolsa:c.exchangeShortName, pais:c.country}))}; } },
-    { name:"metricas_valor", description:"Para hasta 8 símbolos devuelve métricas TTM de calidad y valuación desde FMP: P/E, P/FCF, EV/EBITDA, rendimiento de FCF y de ganancias, ROIC, ROE, deuda neta/EBITDA, márgenes, cobertura de intereses, Piotroski, Altman Z, dividendo, número de Graham, precio vs. medias de 50 y 200 días y rango de 52 semanas. Es la herramienta central para juzgar 'calidad con descuento'.",
+    { name:"metricas_valor", description:"Para hasta 8 símbolos devuelve métricas TTM de calidad y valuación desde FMP: P/E, P/FCF, EV/EBITDA, rendimiento de FCF y de ganancias, ROIC, ROE, deuda neta/EBITDA, márgenes, cobertura de intereses, Piotroski, Altman Z, dividendo, número de Graham, precio vs. medias de 50/200 días y rango de 52 semanas. Herramienta central para juzgar 'calidad con descuento'.",
       inputSchema:{type:"object", properties:{symbols:{type:"array", items:{type:"string"}, description:"Símbolos FMP, máx. 8"}}, required:["symbols"]},
-      execute: async (i) => { const syms = (Array.isArray(i.symbols)?i.symbols:String(i.symbols||"").split(",")).map(s=>String(s).trim().toUpperCase()).filter(Boolean).slice(0,8);
-        if(!syms.length) throw new Error("Pasá al menos un símbolo.");
+      execute: async (i) => { const syms = symList(i.symbols, 8); if(!syms.length) throw new Error("Pasá al menos un símbolo.");
         const out = await Promise.all(syms.map(async sym => {
           try{
             const [km, ra, sc, q] = await Promise.all([fmp("statements",{endpoint:"key-metrics-ttm",symbol:sym},signal), fmp("statements",{endpoint:"metrics-ratios-ttm",symbol:sym},signal), fmp("statements",{endpoint:"financial-scores",symbol:sym},signal).catch(()=>null), fmp("quote",{endpoint:"quote",symbol:sym},signal).catch(()=>null)]);
             const k=first(km)||{}, r=first(ra)||{}, s=first(sc)||{}, qq=first(q)||{};
             if(!k.symbol && !r.symbol) return {simbolo:sym, ok:false, error:"FMP no tiene métricas para este símbolo"};
-            return {simbolo:sym, ok:true, precio:qq.price, cap_usd:k.marketCap, ev:k.enterpriseValueTTM,
+            return {simbolo:sym, ok:true, nombre:qq.name, precio:qq.price, cap_usd:k.marketCap, ev:k.enterpriseValueTTM,
               pe:r2(r.priceToEarningsRatioTTM), p_fcf:r2(r.priceToFreeCashFlowRatioTTM), p_ventas:r2(r.priceToSalesRatioTTM), p_libros:r2(r.priceToBookRatioTTM), ev_ebitda:r2(k.evToEBITDATTM), ev_fcf:r2(k.evToFreeCashFlowTTM),
               rend_fcf:r4(k.freeCashFlowYieldTTM), rend_ganancias:r4(k.earningsYieldTTM), roic:r4(k.returnOnInvestedCapitalTTM), roe:r4(k.returnOnEquityTTM), roa:r4(k.returnOnAssetsTTM),
               deuda_neta_ebitda:r2(k.netDebtToEBITDATTM), deuda_sobre_capital:r2(r.debtToEquityRatioTTM), cobertura_intereses:r2(r.interestCoverageRatioTTM), ratio_corriente:r2(k.currentRatioTTM),
@@ -590,7 +729,7 @@ function chatTools(signal){
           }catch(e){ return {simbolo:sym, ok:false, error:e?.message||e?.code||"error"}; }
         }));
         return {fecha:new Date().toISOString().slice(0,10), empresas:out}; } },
-    { name:"perfil_empresa", description:"Perfil de una empresa desde FMP: descripción breve, sector, país, CEO, empleados, cotización actual con rango de 52 semanas, DCF de FMP vs. precio, y los dos últimos ejercicios anuales (ventas, resultado operativo, resultado neto, EPS). Usala para entender el negocio antes de evaluarlo.",
+    { name:"perfil_empresa", description:"Perfil de una empresa desde FMP: descripción breve, sector, país, CEO, empleados, cotización con rango de 52 semanas, DCF de FMP vs. precio, y los tres últimos ejercicios anuales (ventas, resultado operativo, resultado neto, EPS). Usala para entender el negocio antes de evaluarlo.",
       inputSchema:{type:"object", properties:{symbol:{type:"string"}}, required:["symbol"]},
       execute: async (i) => { const sym = String(i.symbol||"").trim().toUpperCase();
         const [pr, dc, inc] = await Promise.all([fmp("company",{endpoint:"profile-symbol",symbol:sym},signal), fmp("discountedCashFlow",{endpoint:"dcf-advanced",symbol:sym},signal).catch(()=>null), fmp("statements",{endpoint:"income-statement",symbol:sym,period:"annual",limit:3},signal).catch(()=>null)]);
@@ -609,9 +748,10 @@ function chatTools(signal){
         return {simbolo:sym, estadisticas_trimestrales:stats, operaciones:ops, nota:"P-Purchase = compra con dinero propio (señal fuerte). S-Sale = venta. M-Exempt/A-Award/F-InKind son mecánicas de compensación, no señal.", fuente:"FMP sobre SEC EDGAR"}; } },
     { name:"noticias", description:"Últimas noticias de uno o varios símbolos desde FMP (título, medio, fecha, extracto en inglés y enlace). Resumilas en español al responder.",
       inputSchema:{type:"object", properties:{symbols:{type:"array", items:{type:"string"}}, limit:{type:"number"}}, required:["symbols"]},
-      execute: async (i) => { const syms = (Array.isArray(i.symbols)?i.symbols:String(i.symbols||"").split(",")).map(s=>String(s).trim().toUpperCase()).filter(Boolean).slice(0,10);
+      execute: async (i) => { const syms = symList(i.symbols, 10); if(!syms.length) throw new Error("Pasá al menos un símbolo.");
         const p = await fmp("news",{endpoint:"search-stock-news",symbols:syms,limit:Math.min(Number(i.limit||12),30)},signal);
-        return {noticias: arr(p).map(n=>({simbolo:n.symbol, fecha:n.publishedDate, medio:n.publisher||n.site, titulo:n.title, extracto:String(n.text||"").slice(0,300), url:n.url})), fuente:"FMP news"}; } },
+        const n = arr(p); if(!n.length) return {noticias:[], nota:`FMP no devolvió noticias para ${syms.join(", ")}.`, fuente:"FMP news"};
+        return {noticias: n.map(x=>({simbolo:x.symbol, fecha:x.publishedDate, medio:x.publisher||x.site, titulo:x.title, extracto:String(x.text||"").slice(0,300), url:x.url})), fuente:"FMP news"}; } },
     { name:"filings_sec", description:"Presentaciones recientes en la SEC (EDGAR) de un símbolo: tipo de formulario (10-K, 10-Q, 8-K, 4, 13D...), fecha y enlaces oficiales a sec.gov. Opcionalmente filtra por tipo y fecha desde.",
       inputSchema:{type:"object", properties:{symbol:{type:"string"}, formType:{type:"string"}, desde:{type:"string",description:"AAAA-MM-DD"}, limit:{type:"number"}}, required:["symbol"]},
       execute: async (i) => { const sym = String(i.symbol||"").trim().toUpperCase(); const to = new Date().toISOString().slice(0,10); const from = i.desde ? String(i.desde) : new Date(Date.now()-180*864e5).toISOString().slice(0,10);
@@ -620,10 +760,9 @@ function chatTools(signal){
         return {simbolo:sym, desde:from, hasta:to, presentaciones: rows.slice(0,40).map(f=>({formulario:f.formType, fecha:String(f.filingDate||"").slice(0,10), indice_edgar:f.link, documento:f.finalLink})), fuente:"SEC EDGAR vía FMP"}; } },
     { name:"cotizacion", description:"Cotización actual de hasta 20 símbolos FMP: precio, variación del día, volumen, máximo y mínimo de 52 semanas, medias de 50 y 200 días, capitalización.",
       inputSchema:{type:"object", properties:{symbols:{type:"array", items:{type:"string"}}}, required:["symbols"]},
-      execute: async (i) => { const syms = (Array.isArray(i.symbols)?i.symbols:String(i.symbols||"").split(",")).map(s=>String(s).trim().toUpperCase()).filter(Boolean).slice(0,20);
-        const p = await fmp("quote",{endpoint:"batch-quote",symbols:syms},signal);
+      execute: async (i) => { const syms = symList(i.symbols, 20); const p = await fmp("quote",{endpoint:"batch-quote",symbols:syms},signal);
         return {cotizaciones: arr(p).map(q=>({simbolo:q.symbol, nombre:q.name, precio:q.price, var_dia_pct:r2(q.changePercentage), volumen:q.volume, max_52s:q.yearHigh, min_52s:q.yearLow, media_50d:q.priceAvg50, media_200d:q.priceAvg200, cap:q.marketCap, bolsa:q.exchange, hora:q.timestamp?new Date(q.timestamp*1000).toISOString():null})), fuente:"FMP quote"}; } },
-    { name:"analistas", description:"Consenso de analistas de FMP para un símbolo: precio objetivo (alto, bajo, mediana, consenso) y resumen de calificaciones. Usalo solo como contexto, nunca como argumento principal de valor.",
+    { name:"analistas", description:"Consenso de analistas de FMP para un símbolo: precio objetivo (alto, bajo, mediana, consenso) y resumen de calificaciones. Solo como contexto, nunca como argumento principal de valor.",
       inputSchema:{type:"object", properties:{symbol:{type:"string"}}, required:["symbol"]},
       execute: async (i) => { const sym = String(i.symbol||"").trim().toUpperCase();
         const [pt, gr] = await Promise.all([fmp("analyst",{endpoint:"price-target-consensus",symbol:sym},signal).catch(()=>null), fmp("analyst",{endpoint:"grades-summary",symbol:sym},signal).catch(()=>null)]);
@@ -638,109 +777,111 @@ function systemTurn(){
   const hoy = new Date().toLocaleDateString("es-UY",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   return `Sos el analista de inversiones de Gravity, la terminal personal de Bruno. Hoy es ${hoy}.
 
-QUIÉN TE HABLA: Bruno, inversor de largo plazo con enfoque de valor, abogado y empresario uruguayo. No programa. Entiende de negocios y finanzas; explicale brevemente, entre paréntesis, cualquier término técnico la primera vez que aparezca en la respuesta.
+QUIÉN TE HABLA: Bruno, inversor de largo plazo con enfoque de valor, abogado y empresario uruguayo. No programa. Entiende de negocios y finanzas; explicale brevemente, entre paréntesis, cualquier término técnico la primera vez que aparezca.
 
 CÓMO HABLAR: español rioplatense (vos, tenés, mirá), tono directo y cálido, rigor absoluto. Nunca halagues sin sustancia ni digas que sí a todo. Si una idea de Bruno tiene un problema, decilo y explicá por qué.
 
 FUENTES Y HONESTIDAD (regla central):
 - Tus únicas fuentes de datos son las herramientas: Interactive Brokers (cuenta), FMP (precios, estados contables, métricas, screener, insiders, noticias, analistas) y SEC EDGAR (presentaciones). No uses cifras de memoria. Si no llamaste a una herramienta, no afirmes un número.
-- Citá la fuente y la fecha del dato en cada respuesta con cifras (ej. "FMP, TTM al ${pf.fecha}"). Cuando haya enlace a EDGAR o a una noticia, incluilo como enlace Markdown.
-- Si una herramienta falla o no cubre algo (por ejemplo insiders de una empresa europea, que no reporta a la SEC), decilo explícitamente y seguí con lo que sí tenés.
-- Las métricas TTM de FMP pueden tener errores o desfasajes; si un número luce absurdo (ROE de 1000 %, P/E negativo), señalalo en vez de usarlo a ciegas.
+- Citá fuente y fecha en cada respuesta con cifras (ej. "FMP, TTM al ${pf.fecha}"). Cuando haya enlace a EDGAR o a una noticia, incluilo como enlace Markdown.
+- Si una herramienta falla o devuelve vacío, decilo explícitamente con el mensaje de error y seguí con lo que sí tenés. Nunca digas "no hay noticias" sin haber llamado a la herramienta noticias.
+- Las métricas TTM de FMP pueden tener errores; si un número luce absurdo (ROE de 1000 %, P/E negativo), señalalo en vez de usarlo a ciegas.
 
 MARCO DE VALOR ("calidad con descuento"):
-Calidad: ROIC alto y estable (ideal > 15 %), márgenes brutos y operativos altos para su industria, deuda neta/EBITDA baja (ideal < 2), cobertura de intereses holgada, conversión de ganancias en flujo de caja (calidad de ganancias ≥ 1), Piotroski ≥ 6, Altman Z > 3, compensación en acciones moderada, negocio entendible con ventaja competitiva.
-Descuento: rendimiento de flujo de caja libre (FCF yield) alto para su calidad (> 4-5 % es interesante en una empresa excelente), EV/EBITDA y P/FCF por debajo de lo que merece esa calidad, precio por debajo del DCF de FMP, precio lejos del máximo de 52 semanas o por debajo de la media de 200 días, compras de insiders con dinero propio (código P).
-Siempre separá calidad de precio: una gran empresa cara no es una oportunidad, y una empresa barata sin calidad es una trampa de valor. Señalá riesgos específicos (deuda, ciclo, disrupción, gobierno corporativo, moneda).
+Calidad: ROIC alto y estable (ideal > 15 %), márgenes altos para su industria, deuda neta/EBITDA baja (ideal < 2), cobertura de intereses holgada, conversión de ganancias en caja (calidad de ganancias ≥ 1), Piotroski ≥ 6, Altman Z > 3, compensación en acciones moderada, ventaja competitiva entendible.
+Descuento: rendimiento de flujo de caja libre alto para su calidad (> 4-5 % en una empresa excelente es interesante), EV/EBITDA y P/FCF por debajo de lo que merece esa calidad, precio por debajo del DCF de FMP, precio lejos del máximo de 52 semanas o bajo la media de 200 días, compras de insiders con dinero propio (código P).
+Separá siempre calidad de precio: una gran empresa cara no es oportunidad, y una barata sin calidad es trampa de valor. Señalá riesgos específicos (deuda, ciclo, disrupción, gobierno corporativo, moneda).
 
-MÉTODO PARA BUSCAR OPORTUNIDADES: 1) buscar_empresas con filtros razonables (capitalización ≥ 2.000 M USD salvo que pidan otra cosa); 2) metricas_valor sobre los candidatos más prometedores (hasta 8 por llamada; podés hacer más de una ronda); 3) ordenar por la combinación calidad × descuento; 4) mostrar una tabla Markdown compacta con 5 a 8 empresas y luego 2-3 líneas por empresa; 5) ofrecer profundizar con perfil_empresa, insiders y filings_sec.
+MÉTODO PARA BUSCAR OPORTUNIDADES: 1) buscar_empresas con filtros razonables (capitalización ≥ 2.000 M USD salvo que pidan otra cosa); 2) metricas_valor sobre los candidatos más prometedores (hasta 8 por llamada; podés hacer más de una ronda); 3) ordenar por calidad × descuento; 4) tabla Markdown compacta con 5 a 8 empresas y luego 2-3 líneas por empresa; 5) ofrecer profundizar.
 
-MÉTODO PARA ANALIZAR UNA EMPRESA: perfil_empresa + metricas_valor + insiders (si es de EE.UU.) y, si aporta, noticias y filings_sec. Estructura: qué hace y por qué es buena (o no), números de calidad, valuación actual, señales de insiders, riesgos, conclusión en una frase. No des órdenes de compra o venta; dá un análisis fundado y dejá la decisión a Bruno.
+MÉTODO PARA ANALIZAR UNA EMPRESA: perfil_empresa + metricas_valor + insiders (si es de EE.UU.) + noticias si lo piden o aporta, y filings_sec si hay algo reciente relevante. Estructura: qué hace y por qué es buena (o no), números de calidad, valuación actual, señales de insiders, riesgos, conclusión en una frase. No des órdenes de compra o venta; dá un análisis fundado y dejá la decisión a Bruno.
 
-CARTERA: para preguntas sobre su cartera usá mi_cartera. Símbolos FMP de sus posiciones no estadounidenses: usá el campo simbolo_fmp (ej. RMS.PA, 0700.HK, 7974.T, CSU.TO, WKL.AS, STMN.SW, ALL.AX, 005930.KS). Opciones: vendidas = cobró prima, obligación; compradas = derecho.
+CARTERA: para preguntas sobre su cartera usá mi_cartera. Símbolos FMP de posiciones no estadounidenses: campo simbolo_fmp (RMS.PA, 0700.HK, 7974.T, CSU.TO, WKL.AS, STMN.SW, ALL.AX, 005930.KS, SPYI.DE, IB01.L). Opciones vendidas = cobró prima, obligación; compradas = derecho.
 
-FORMATO: Markdown. Párrafos cortos. Tablas solo cuando comparan varias empresas o métricas. Números con separador de miles y símbolo de moneda; porcentajes con una decimal. Respuestas completas pero sin relleno. Terminá con la lista de fuentes consultadas y sus fechas.
+FORMATO: Markdown. Párrafos cortos. Tablas solo para comparar varias empresas o métricas. Números con separador de miles y símbolo de moneda; porcentajes con una decimal. Completo pero sin relleno. Terminá con "Fuentes:" y la lista de fuentes consultadas con fechas.
 
-RESUMEN ACTUAL DE LA CARTERA (de Interactive Brokers, ${pf.actualizado||"sin hora"}): valor neto ${fmtUsd(pf.valor_neto)}, efectivo ${fmtUsd(pf.efectivo)}, apalancamiento ${pf.apalancamiento||"—"}. Principales posiciones: ${pf.acciones.slice(0,14).map(a=>`${a.simbolo_fmp||a.simbolo_ib} (${fmtUsd(a.valor_usd)})`).join(", ")||"sin datos todavía"}. Opciones abiertas: ${pf.opciones.length}. Para detalle llamá a mi_cartera.`;
+RESUMEN ACTUAL DE LA CARTERA (Interactive Brokers, ${pf.actualizado||"sin hora"}): valor neto ${fmtUsd(pf.valor_neto)}, efectivo ${fmtUsd(pf.efectivo)}, apalancamiento ${pf.apalancamiento||"—"}. Principales posiciones: ${pf.acciones.slice(0,14).map(a=>`${a.simbolo_fmp||a.simbolo_ib} (${fmtUsd(a.valor_usd)})`).join(", ")||"sin datos todavía"}. Opciones abiertas: ${pf.opciones.length}. Para detalle llamá a mi_cartera.`;
 }
 
 /* ---------- chat UI ---------- */
-function addMsg(role, html){
+function addMsg(role, text){
   const d = document.createElement("div"); d.className = "msg " + role;
-  const md = document.createElement("div"); md.className = "md"; d.append(md);
-  if(role==="user") md.textContent = html; else renderMd(md, html);
-  $("#msgs").append(d); d.scrollIntoView({block:"end", behavior:"smooth"});
+  if(role==="user"){ d.textContent = text; }
+  else { d.innerHTML = '<div class="who"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 18L10 6l4 8 2-4 4 8"/></svg></span>Analista de valor</div><div class="md"></div>'; renderMd(d.querySelector(".md"), text); }
+  $("#msgs").append(d); $("#suggest").hidden = true; d.scrollIntoView({block:"end", behavior:"smooth"});
   return d;
 }
 function askInChat(q){ showTab("chat"); const i = $("#chat-input"); i.value = q; i.focus(); autoGrow(i); }
 function autoGrow(t){ t.style.height="auto"; t.style.height = Math.min(t.scrollHeight, 140) + "px"; }
 function setBusy(b){ S.busy = b; const btn = $("#btn-send"); btn.classList.toggle("stop", b); btn.setAttribute("aria-label", b?"Detener":"Enviar"); btn.innerHTML = b ? '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'; }
 function saveTurns(){ try{ localStorage.setItem("gravity.turns", JSON.stringify(S.turns.slice(-30))); }catch(e){} }
-function loadTurns(){ try{ const t = JSON.parse(localStorage.getItem("gravity.turns")||"[]"); if(Array.isArray(t)){ S.turns = t; for(const m of t) addMsg(m.role==="user"?"user":"bot", m.content); } }catch(e){} }
+function loadTurns(){ try{ const t = JSON.parse(localStorage.getItem("gravity.turns")||"[]"); if(Array.isArray(t) && t.length){ S.turns = t; for(const m of t) addMsg(m.role==="user"?"user":"bot", m.content); } }catch(e){} }
 
 async function send(){
   if(S.busy){ S.ctl?.abort(); return; }
   const input = $("#chat-input"); const q = input.value.trim(); if(!q) return;
   if(!S.sample){ stateBox($("#chat-state"), "Esta vista no puede consultar a Claude. Abrí el enlace del artefacto en claude.ai con tu sesión iniciada.", "err"); return; }
-  if(!S.mcp){ stateBox($("#chat-state"), "Sin acceso a los conectores: el chat responderá sin datos en vivo.", "warn"); }
-  $("#chat-state").innerHTML = "";
+  $("#chat-state").hidden = true;
+  if(!S.mcp) stateBox($("#chat-state"), "Sin acceso a los conectores: el chat responde sin datos en vivo.", "warn");
   input.value = ""; autoGrow(input);
-  addMsg("user", q);
-  S.turns.push({role:"user", content:q});
+  addMsg("user", q); S.turns.push({role:"user", content:q});
   const bot = addMsg("bot", ""); const md = bot.querySelector(".md");
   md.innerHTML = '<span class="thinking">Consultando fuentes <i></i><i></i><i></i></span>';
-  const used = []; const toolsEl = document.createElement("div"); toolsEl.className = "tools";
+  const srcEl = document.createElement("div"); srcEl.className = "src";
+  const mark = (name, state, extra) => { let s = srcEl.querySelector(`[data-t="${name}"]`); if(!s){ s=document.createElement("span"); s.dataset.t=name; srcEl.append(s); if(!bot.contains(srcEl)) bot.append(srcEl); } s.className = state; s.textContent = (state==="ok"?"✓ ":state==="ko"?"✕ ":"… ") + name + (extra?` · ${extra}`:""); };
   S.ctl = new AbortController(); setBusy(true);
-  const tools = S.mcp ? chatTools(S.ctl.signal).map(t => ({...t, execute: async (i, ctx) => { used.push(t.name); const s=document.createElement("span"); s.textContent=t.name; toolsEl.append(s); if(!bot.contains(toolsEl)) bot.append(toolsEl); return t.execute(i, ctx); }})) : undefined;
-  const history = S.turns.slice(-16);
-  const msgs = [{role:"user", content: systemTurn()}, ...history];
+  const tools = (S.mcp && S.sampleLimits?.tools) ? chatTools(S.ctl.signal).map(t => ({...t, execute: async (i, ctx) => { mark(t.name,"run"); try{ const r = await t.execute(i, ctx); mark(t.name,"ok"); return r; }catch(e){ const code = e?.code || e?.message || "error"; mark(t.name,"ko", String(code).slice(0,40)); log(`tool ${t.name}: ${code}`); throw new Error(`${t.name} falló: ${errCopy(e, e?.server||"la fuente")}`); } }})) : undefined;
+  const msgs = [{role:"user", content: systemTurn()}, ...S.turns.slice(-16)];
+  let streamed = false;
   try{
-    const res = await S.sample(msgs, { cache:false, signal:S.ctl.signal, modelTier:S.tier, tools, onText: ({text}) => { renderMd(md, text); } });
+    const res = await S.sample(msgs, { cache:false, signal:S.ctl.signal, modelTier:S.tier, tools, onText: ({text}) => { streamed = true; renderMd(md, text); } });
     renderMd(md, res.text);
     if(res.truncated){ const n=document.createElement("div"); n.className="muted"; n.style.fontSize="12px"; n.textContent="Respuesta recortada por longitud. Pedí menos de una vez."; bot.append(n); }
     S.turns.push({role:"assistant", content:res.text}); saveTurns();
   }catch(e){
-    if(e?.text){ renderMd(md, e.text); S.turns.push({role:"assistant", content:e.text}); }
-    else md.textContent = "";
+    log(`sample ${e?.code}: ${e?.message||""}`);
+    if(e?.text){ renderMd(md, e.text); S.turns.push({role:"assistant", content:e.text}); } else if(!streamed) bot.remove();
     if(e?.code!=="cancelled"){
-      const copy = { not_granted:"No permitiste que esta página consulte a Claude. Podés habilitarlo desde el menú de permisos del artefacto.", rate_limited:"Llegaste al límite de uso de Claude por ahora. Probá en unos minutos.", refused:"Claude no pudo responder a ese pedido tal como está. Reformulalo.", tools_unavailable:"Esta vista no permite herramientas; respondo sin datos en vivo.", prompt_too_large:"La conversación es demasiado larga. Empezá una nueva.", session_expired:"Tu sesión de claude.ai venció. Volvé a iniciar sesión.", empty_completion:"Claude no devolvió texto. Reformulá la pregunta." }[e?.code] || ("Falló la consulta: " + (e?.message||e?.code||"error desconocido") + ". Podés reintentar.");
-      const er = document.createElement("div"); er.className = "msg err"; er.textContent = copy; $("#msgs").append(er); er.scrollIntoView({block:"end"});
-      if(!e?.text){ bot.remove(); if(S.turns[S.turns.length-1]?.role==="user") { /* keep user turn so a retry has it */ } }
-    } else if(!e?.text){ bot.remove(); }
+      const copy = { not_granted:"No permitiste que esta página consulte a Claude. Habilitalo desde el menú de permisos del artefacto.", rate_limited:"Llegaste al límite de uso de Claude por ahora. Probá en unos minutos.", refused:"Claude no pudo responder a ese pedido tal como está. Reformulalo.", tools_unavailable:"Esta vista no permite herramientas de página.", prompt_too_large:"La conversación es demasiado larga. Empezá una nueva.", session_expired:"Tu sesión de claude.ai venció. Volvé a iniciar sesión.", empty_completion:"Claude no devolvió texto. Reformulá la pregunta.", invalid_request:"Pedido inválido: " + (e?.message||"") }[e?.code] || ("Falló la consulta (" + (e?.code||"error") + "): " + (e?.message||"") + ".");
+      const er = document.createElement("div"); er.className = "msg err"; er.textContent = copy;
+      const rb = document.createElement("button"); rb.className = "btn ghost sm"; rb.textContent = "Reintentar"; rb.onclick = () => { er.remove(); if(S.turns[S.turns.length-1]?.role==="user"){ const last = S.turns.pop(); $("#chat-input").value = last.content; } send(); };
+      er.append(rb); $("#msgs").append(er); er.scrollIntoView({block:"end"});
+    } else if(!e?.text && !streamed){ S.turns.pop(); }
   }finally{ setBusy(false); S.ctl = null; }
 }
 
-/* ---------- insiders tab ---------- */
+/* ---------- insiders ---------- */
 function insiderItem(t){
   const buy = t.transactionType==="P-Purchase", sell = t.transactionType==="S-Sale";
   const val = (t.price && t.securitiesTransacted) ? t.price*t.securitiesTransacted : null;
   const d = document.createElement("div"); d.className = "item";
-  d.innerHTML = `<div class="t"><span class="tag ${buy?"buy":sell?"sell":""}">${esc(buy?"Compra":sell?"Venta":txEs(t.transactionType))}</span>${esc(t.symbol)} · ${esc(t.reportingName)}</div>
-    <div class="r">${esc(fmtNum(t.securitiesTransacted,0))} acc.${t.price?` @ ${esc(fmtNum(t.price,2))}`:""}<br>${val?esc(fmtUsd(val)):""}</div>
-    <div class="m">${esc(t.typeOfOwner||"")} · ${esc(t.securityName||"")} · operado ${esc(t.transactionDate||"")} · presentado ${esc(t.filingDate||"")}${t.url?` · <a href="${esc(t.url)}" target="_blank" rel="noopener">EDGAR</a>`:""}</div>`;
+  d.innerHTML = `<div class="av ${buy?"buy":sell?"sell":""}">${esc(String(t.symbol||"").slice(0,5))}</div>
+    <div class="t"><span class="tag ${buy?"buy":sell?"sell":""}">${esc(buy?"Compra":sell?"Venta":txEs(t.transactionType))}</span> ${esc(t.reportingName)}</div>
+    <div class="r">${esc(fmtNum(t.securitiesTransacted,0))} acc.${t.price?` @ ${esc(fmtNum(t.price,2))}`:""}<br><b>${val?esc(fmtUsd(val)):""}</b></div>
+    <div class="m">${esc(t.typeOfOwner||"")} · ${esc(t.securityName||"")} · operado ${esc(t.transactionDate||"")} · presentado ${esc(t.filingDate||"")}${t.url?` · <a href="${esc(t.url)}" target="_blank" rel="noopener">EDGAR ↗</a>`:""}</div>`;
   return d;
 }
 async function loadInsiders(force){
-  if(!S.mcp){ stateBox($("#ins-mine"), "Sin acceso a conectores en esta vista.", "err"); return; }
-  if(S.insidersLoaded && !force) return;
-  S.insidersLoaded = true;
   const mine = $("#ins-mine"), mkt = $("#ins-mkt");
-  mine.innerHTML = `<div class="skel"></div><div class="skel" style="width:70%"></div>`; mkt.innerHTML = `<div class="skel"></div><div class="skel" style="width:60%"></div>`;
-  const syms = Array.from(new Set(S.positions.filter(p=>p.isUS && p.position).map(p=>p.symbol)));
+  if(!S.mcp){ stateBox(mine, "Sin acceso a conectores en esta vista.", "err"); return; }
+  if(S.insidersLoaded && !force) return; S.insidersLoaded = true;
+  mine.innerHTML = `<div class="skel"></div><div class="skel" style="width:70%;margin-top:10px"></div>`; mkt.innerHTML = `<div class="skel"></div><div class="skel" style="width:60%;margin-top:10px"></div>`;
+  const syms = Array.from(new Set(live().filter(p=>p.isUS).map(p=>p.symbol)));
   const opts = {cache:{staleTime:600000, gcTime:3600000}};
   try{
-    const res = await Promise.all(syms.map(s => S.mcp.callTool(FMP,"insiderTrades",{endpoint:"search-insider-trades",symbol:s,limit:12},opts).then(r=>arr(r.payload)).catch(e=>({err:e, s}))));
-    const rows = []; const failed = [];
-    res.forEach((r,i)=>{ if(Array.isArray(r)) rows.push(...r); else failed.push(syms[i]); });
+    const res = await Promise.all(syms.map(s => S.mcp.callTool(S.fmp,"insiderTrades",{endpoint:"search-insider-trades",symbol:s,limit:12},opts).then(r=>arr(r.payload)).catch(e=>({err:e}))));
+    const rows = [], failed = [];
+    res.forEach((r,i)=>{ if(Array.isArray(r)) rows.push(...r); else { failed.push(syms[i]); log(`insiders ${syms[i]}: ${r.err?.code}`); } });
     rows.sort((a,b)=>String(b.filingDate).localeCompare(String(a.filingDate)));
     const real = rows.filter(t=>t.transactionType==="P-Purchase"||t.transactionType==="S-Sale");
     const other = rows.filter(t=>!(t.transactionType==="P-Purchase"||t.transactionType==="S-Sale"));
     mine.innerHTML = "";
-    if(!syms.length) stateBox(mine, "No tenés acciones de EE.UU. en cartera, que son las que reportan a la SEC.", "warn");
-    else if(!rows.length) stateBox(mine, "FMP no devolvió operaciones recientes para " + syms.join(", ") + ".", "warn");
+    if(!syms.length) mine.innerHTML = `<div class="empty">No tenés acciones de EE.UU. en cartera, que son las que reportan a la SEC.</div>`;
+    else if(!rows.length) mine.innerHTML = `<div class="empty">FMP no devolvió operaciones recientes para ${esc(syms.join(", "))}.</div>`;
     else {
       const head = document.createElement("div"); head.className="muted"; head.style.fontSize="12px"; head.style.marginBottom="4px";
       head.textContent = `${real.length} compras/ventas en mercado y ${other.length} movimientos de compensación en ${syms.join(", ")}`; mine.append(head);
+      if(!real.length) mine.append(Object.assign(document.createElement("div"),{className:"empty",textContent:"Sin compras ni ventas en mercado abierto en las últimas operaciones."}));
       for(const t of real.slice(0,40)) mine.append(insiderItem(t));
       if(other.length){ const det=document.createElement("details"); det.style.marginTop="8px"; const sm=document.createElement("summary"); sm.className="muted"; sm.style.fontSize="13px"; sm.style.cursor="pointer"; sm.textContent=`Ver ${other.length} movimientos de compensación (RSU, ejercicios, retenciones)`; det.append(sm); for(const t of other.slice(0,60)) det.append(insiderItem(t)); mine.append(det); }
       if(failed.length){ const w=document.createElement("div"); w.className="state warn"; w.textContent="No se pudo consultar: "+failed.join(", "); mine.append(w); }
@@ -748,11 +889,10 @@ async function loadInsiders(force){
     S.insMine = real.slice(0,40);
   }catch(e){ stateBox(mine, errCopy(e,"FMP"), "err", {fn:()=>loadInsiders(true)}); }
   try{
-    const r = await S.mcp.callTool(FMP,"insiderTrades",{endpoint:"latest-insider-trade",limit:100},opts);
+    const r = await S.mcp.callTool(S.fmp,"insiderTrades",{endpoint:"latest-insider-trade",limit:100},opts);
     const buys = arr(r.payload).filter(t=>t.transactionType==="P-Purchase" && t.formType==="4" && t.securitiesTransacted>0).sort((a,b)=>(b.price*b.securitiesTransacted)-(a.price*a.securitiesTransacted));
-    mkt.innerHTML = "";
-    $("#ins-mkt-fresh").textContent = "FMP · " + hhmm(r.cache?.storedAt || Date.now());
-    if(!buys.length) stateBox(mkt, "No hubo compras en mercado abierto entre las últimas 100 operaciones presentadas.", "warn");
+    mkt.innerHTML = ""; $("#ins-mkt-fresh").textContent = "FMP · " + hhmm(r.cache?.storedAt || Date.now());
+    if(!buys.length) mkt.innerHTML = `<div class="empty">No hubo compras en mercado abierto entre las últimas 100 operaciones presentadas.</div>`;
     for(const t of buys.slice(0,30)) mkt.append(insiderItem(t));
   }catch(e){ stateBox(mkt, errCopy(e,"FMP"), "err", {fn:()=>loadInsiders(true)}); }
 }
@@ -764,35 +904,39 @@ async function summarizeInsiders(){
   btn.disabled = true; host.hidden = false; host.innerHTML = '<span class="thinking">Resumiendo <i></i><i></i><i></i></span>';
   const rows = data.slice(0,40).map(t=>`${t.symbol} | ${t.transactionType} | ${t.reportingName} (${t.typeOfOwner}) | ${t.securitiesTransacted} acciones @ ${t.price} | operado ${t.transactionDate} | presentado ${t.filingDate}`).join("\n");
   try{
-    const {text} = await S.sample(`Sos analista de valor. Resumí en español rioplatense, en 6 a 10 líneas con viñetas, qué hicieron los insiders de estas empresas (posiciones de la cartera del usuario). Priorizá compras con dinero propio (P-Purchase) por tamaño en dólares, señalá patrones (varios directivos comprando, CEO vendiendo mucho) y aclarará cuando una venta parezca rutinaria. No inventes nada que no esté en los datos. Datos (FMP sobre SEC EDGAR, hoy ${new Date().toISOString().slice(0,10)}):\n\n${rows}`, {modelTier:"quick", cache:{gcTime:1800000}});
+    const {text} = await S.sample(`Sos analista de valor. Resumí en español rioplatense, en 6 a 10 viñetas, qué hicieron los insiders de estas empresas (posiciones de la cartera del usuario). Priorizá compras con dinero propio (P-Purchase) por tamaño en dólares, señalá patrones (varios directivos comprando, CEO vendiendo mucho) y aclará cuando una venta parezca rutinaria. No inventes nada que no esté en los datos. Datos (FMP sobre SEC EDGAR, hoy ${new Date().toISOString().slice(0,10)}):\n\n${rows}`, {modelTier:"quick", cache:{gcTime:1800000}});
     renderMd(host, text);
   }catch(e){ host.textContent = e?.code==="not_granted" ? "No permitiste que esta página consulte a Claude." : "No se pudo resumir ahora. " + (e?.message||""); }
   finally{ btn.disabled=false; }
 }
 
-/* ---------- news tab ---------- */
-function newsSymbols(){ const mine = S.positions.filter(p=>p.isUS && p.position).map(p=>p.symbol); return Array.from(new Set([...mine, ...S.extraSyms])); }
+/* ---------- news ---------- */
+function newsSymbols(){ const mine = live().filter(p=>p.fmp && p.kind==="stk").map(p=>p.fmp); return Array.from(new Set([...S.extraSyms, ...mine])); }
 function renderNewsChips(){
   const host = $("#news-syms"); host.innerHTML = "";
-  for(const s of newsSymbols()){ const b=document.createElement("button"); b.className="chip"+(S.newsSyms.includes(s)?" on":""); b.textContent=s; b.onclick=()=>{ S.newsSyms = S.newsSyms.includes(s) ? S.newsSyms.filter(x=>x!==s) : [...S.newsSyms, s]; renderNewsChips(); loadNews(true); }; host.append(b); }
+  const all = newsSymbols(); if(!all.length) return;
+  const mk = (label, on, fn) => { const b=document.createElement("button"); b.className="chip"+(on?" on":""); b.textContent=label; b.onclick=fn; host.append(b); };
+  mk("Todas", !S.newsSyms.length, ()=>{ S.newsSyms=[]; renderNewsChips(); loadNews(true); });
+  for(const s of all) mk(s, S.newsSyms.includes(s), ()=>{ S.newsSyms = S.newsSyms.includes(s) ? S.newsSyms.filter(x=>x!==s) : [s]; renderNewsChips(); loadNews(true); });
 }
 async function loadNews(force){
-  if(!S.mcp){ stateBox($("#news-list"), "Sin acceso a conectores en esta vista.", "err"); return; }
+  const host = $("#news-list");
+  if(!S.mcp){ stateBox(host, "Sin acceso a conectores en esta vista.", "err"); return; }
   if(S.newsLoaded && !force) return; S.newsLoaded = true;
-  const host = $("#news-list"); host.innerHTML = `<div class="skel"></div><div class="skel" style="width:80%"></div><div class="skel" style="width:60%"></div>`;
+  host.innerHTML = `<div class="skel"></div><div class="skel" style="width:80%;margin-top:10px"></div><div class="skel" style="width:60%;margin-top:10px"></div>`;
   const syms = S.newsSyms.length ? S.newsSyms : newsSymbols();
-  if(!syms.length){ stateBox(host, "Agregá un símbolo para ver noticias.", "warn"); return; }
+  if(!syms.length){ host.innerHTML = `<div class="empty">Agregá un símbolo para ver noticias.</div>`; return; }
   try{
-    const r = await S.mcp.callTool(FMP,"news",{endpoint:"search-stock-news",symbols:syms.slice(0,15),limit:30},{cache:{staleTime:300000, gcTime:1800000}});
+    const r = await S.mcp.callTool(S.fmp,"news",{endpoint:"search-stock-news",symbols:syms.slice(0,15),limit:30},{cache:{staleTime:300000, gcTime:1800000}});
     const items = arr(r.payload).sort((a,b)=>String(b.publishedDate).localeCompare(String(a.publishedDate)));
-    S.newsItems = items; host.innerHTML = "";
-    if(!items.length){ stateBox(host, "FMP no devolvió noticias para " + syms.join(", ") + ".", "warn"); return; }
+    S.newsItems = items; host.innerHTML = ""; $("#btn-news-es").textContent = "Traducir y resumir";
+    if(!items.length){ host.innerHTML = `<div class="empty">FMP no devolvió noticias para ${esc(syms.join(", "))}.</div>`; return; }
     items.forEach((n,i)=>{
       const d = document.createElement("div"); d.className="item"; d.dataset.i = i;
-      d.innerHTML = `<div class="t"><span class="tag">${esc(n.symbol)}</span><a href="${esc(n.url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(n.title)}</a></div><div class="r">${esc(String(n.publishedDate||"").slice(5,16))}</div><div class="m">${esc(n.publisher||n.site||"")} · ${esc(String(n.text||"").slice(0,180))}</div>`;
+      d.innerHTML = `<div class="av">${esc(String(n.symbol||"").slice(0,5))}</div><div class="t"><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a></div><div class="r">${esc(String(n.publishedDate||"").slice(5,16))}</div><div class="m">${esc(n.publisher||n.site||"")} · ${esc(String(n.text||"").slice(0,200))}</div>`;
       host.append(d);
     });
-  }catch(e){ stateBox(host, errCopy(e,"FMP"), "err", {fn:()=>loadNews(true)}); }
+  }catch(e){ log(`news: ${e.code}`); stateBox(host, errCopy(e,"FMP"), "err", {fn:()=>loadNews(true)}); }
 }
 async function translateNews(){
   const btn = $("#btn-news-es"); const items = (S.newsItems||[]).slice(0,20);
@@ -803,9 +947,9 @@ async function translateNews(){
   try{
     const out = await S.sample.json(`Traducí al español rioplatense y resumí en una frase cada noticia (máximo 30 palabras por resumen, sin opinar). Respondé solo con un array JSON de objetos {"i": número, "titulo": string, "resumen": string}, uno por línea de entrada, conservando el índice i.\n\n${src}`, {modelTier:"quick", cache:{gcTime:1800000}});
     const map = new Map((Array.isArray(out)?out:[]).map(o=>[Number(o.i), o]));
-    $$("#news-list .item").forEach(el=>{ const o = map.get(Number(el.dataset.i)); if(!o) return; let es = el.querySelector(".es"); if(!es){ es=document.createElement("div"); es.className="es"; el.append(es); } es.textContent = `${o.titulo||""} — ${o.resumen||""}`; });
+    $$("#news-list .item").forEach(el=>{ const o = map.get(Number(el.dataset.i)); if(!o) return; let es = el.querySelector(".es"); if(!es){ es=document.createElement("div"); es.className="es"; el.append(es); } es.innerHTML = `<b>${esc(o.titulo||"")}</b><br>${esc(o.resumen||"")}`; });
     btn.textContent = "Traducido";
-  }catch(e){ btn.textContent = "Traducir y resumir"; stateBox($("#news-list").appendChild(document.createElement("div")), e?.code==="not_granted" ? "No permitiste que esta página consulte a Claude." : "No se pudo traducir ahora.", "warn"); }
+  }catch(e){ btn.textContent = "Traducir y resumir"; log(`translate ${e.code}`); const w=document.createElement("div"); w.className="state warn"; w.textContent = e?.code==="not_granted" ? "No permitiste que esta página consulte a Claude." : "No se pudo traducir ahora."; $("#news-list").prepend(w); }
   finally{ btn.disabled=false; }
 }
 
@@ -814,11 +958,12 @@ const TABS = ["cartera","chat","insiders","noticias"];
 function showTab(name){
   if(!TABS.includes(name)) name = "cartera";
   S.tab = name;
-  for(const t of TABS){ $("#view-"+t).hidden = t!==name; }
-  $$("nav.tabs button").forEach(b => b.toggleAttribute("aria-current", b.dataset.tab===name) || (b.dataset.tab===name ? b.setAttribute("aria-current","page") : b.removeAttribute("aria-current")));
+  for(const t of TABS) $("#view-"+t).hidden = t!==name;
+  $$("nav.tabs button").forEach(b => { if(b.dataset.tab===name) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   if(location.hash !== "#"+name){ try{ history.replaceState(null,"","#"+name); }catch(e){} }
   if(name==="insiders") loadInsiders(false);
   if(name==="noticias"){ renderNewsChips(); loadNews(false); }
+  $("#tape").hidden = name==="chat";
   if(name==="cartera") drawSpark();
   $("#main").scrollTop = 0;
 }
@@ -827,44 +972,50 @@ function showTab(name){
 function boot(){
   $$("nav.tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
   window.addEventListener("hashchange", () => showTab(location.hash.replace("#","")));
-  $$("#spark-seg button").forEach(b => b.onclick = () => { S.period = b.dataset.p; $$("#spark-seg button").forEach(x=>x.setAttribute("aria-pressed", x===b)); drawSpark(); });
-  $$("#tier-seg button").forEach(b => b.onclick = () => { S.tier = b.dataset.t; $$("#tier-seg button").forEach(x=>x.setAttribute("aria-pressed", x===b)); try{ localStorage.setItem("gravity.tier", S.tier); }catch(e){} });
-  try{ const t = localStorage.getItem("gravity.tier"); if(t && ["quick","default","complex"].includes(t)){ S.tier=t; $$("#tier-seg button").forEach(x=>x.setAttribute("aria-pressed", x.dataset.t===t)); } }catch(e){}
-  $$("#suggest .chip").forEach(b => b.onclick = () => { $("#chat-input").value = b.dataset.q; autoGrow($("#chat-input")); send(); });
+  const seg = (sel, key, after) => $$(sel+" button").forEach(b => b.onclick = () => { S[key] = b.dataset[Object.keys(b.dataset)[0]]; $$(sel+" button").forEach(x=>x.setAttribute("aria-pressed", x===b)); after(); });
+  seg("#spark-seg","period",drawSpark); seg("#pos-seg","group",renderPositions); seg("#sort-seg","sort",renderPositions);
+  seg("#tier-seg","tier",()=>{ try{ localStorage.setItem("gravity.tier", S.tier); }catch(e){} });
+  try{ const t = localStorage.getItem("gravity.tier"); if(["quick","default","complex"].includes(t)){ S.tier=t; $$("#tier-seg button").forEach(x=>x.setAttribute("aria-pressed", x.dataset.t===t)); } }catch(e){}
+  $$("#suggest button").forEach(b => b.onclick = () => { $("#chat-input").value = b.dataset.q; autoGrow($("#chat-input")); send(); });
   $("#btn-send").onclick = send;
   const inp = $("#chat-input"); inp.addEventListener("input", () => autoGrow(inp)); inp.addEventListener("keydown", e => { if(e.key==="Enter" && !e.shiftKey && window.innerWidth>700){ e.preventDefault(); send(); } });
-  $("#btn-clear").onclick = () => { S.ctl?.abort(); S.turns = []; saveTurns(); const m=$("#msgs"); while(m.children.length>1) m.lastChild.remove(); };
+  $("#btn-clear").onclick = () => { S.ctl?.abort(); S.turns = []; saveTurns(); $$("#msgs .msg:not(#welcome), #msgs .msg.err").forEach(m=>m.remove()); $("#suggest").hidden = false; };
   $("#btn-ins-sum").onclick = summarizeInsiders;
   $("#btn-news-es").onclick = translateNews;
-  const addSym = () => { const v = $("#news-sym").value.trim().toUpperCase(); if(!v) return; if(!S.extraSyms.includes(v)) S.extraSyms.push(v); S.newsSyms = [v]; $("#news-sym").value=""; renderNewsChips(); loadNews(true); };
+  const addSym = () => { const v = $("#news-sym").value.trim().toUpperCase(); if(!v) return; if(!S.extraSyms.includes(v)) S.extraSyms.unshift(v); S.newsSyms = [v]; $("#news-sym").value=""; renderNewsChips(); loadNews(true); };
   $("#btn-news-add").onclick = addSym; $("#news-sym").addEventListener("keydown", e => { if(e.key==="Enter"){ e.preventDefault(); addSym(); } });
-  $("#btn-info").onclick = () => { $("#sheet").hidden = false; };
+  $("#btn-info").onclick = () => { $("#sheet").hidden = false; $("#diag").textContent = S.diag.join("\n") || "sin eventos"; };
   $("#sheet-close").onclick = () => { $("#sheet").hidden = true; };
-  $("#sheet").addEventListener("click", e => { if(e.target.id==="sheet") $("#sheet").hidden = true; });
-  $("#h-nav").onclick = () => { if(S.mcp) S.mcp.invalidate(IB).catch(()=>{}); };
-  window.addEventListener("resize", drawSpark);
+  for(const id of ["sheet","sheet-pos"]) $("#"+id).addEventListener("click", e => { if(e.target.id===id) $("#"+id).hidden = true; });
+  document.addEventListener("keydown", e => { if(e.key==="Escape"){ $("#sheet").hidden = true; $("#sheet-pos").hidden = true; } });
+  $("#btn-refresh").onclick = refreshNow;
+  window.addEventListener("resize", () => { drawSpark(); });
   loadTurns();
   showTab(location.hash.replace("#","") || "cartera");
   renderAll();
 
-  const diag = [];
   const c = window.claude;
   if(!c || typeof c.use!=="function"){
     stateBox($("#cartera-state"), "Esta copia de la página no está dentro del visor de claude.ai, así que no puede leer tu cuenta. Abrí el enlace del artefacto en claude.ai.", "err");
-    $("#h-fresh").textContent = "Sin conexión"; return;
+    $("#h-fresh").textContent = "sin conexión"; $("#dot").className="dot err"; return;
   }
-  c.use("mcp").then(mcp => {
-    S.mcp = mcp; diag.push("conectores: " + (mcp?"disponibles":"no disponibles"));
-    if(!mcp){ stateBox($("#cartera-state"), "Esta vista no tiene acceso a tus conectores. Abrí el artefacto en claude.ai con tu sesión iniciada.", "err"); $("#h-fresh").textContent = "Sin conectores"; return; }
-    watchIB();
+  c.use("mcp").then(async mcp => {
+    S.mcp = mcp; log("conectores: " + (mcp?"disponibles":"no disponibles"));
+    if(!mcp){ stateBox($("#cartera-state"), "Esta vista no tiene acceso a tus conectores. Abrí el artefacto en claude.ai con tu sesión iniciada.", "err"); $("#h-fresh").textContent = "sin conectores"; $("#dot").className="dot err"; return; }
+    try{
+      const lt = await mcp.listTools();
+      for(const s of lt.servers||[]){ log(`servidor “${s.server}” · ${s.authStatus} · ${s.tools?.length||0} herramientas`); }
+      const find = (needle) => (lt.servers||[]).find(s => s.server.toLowerCase().includes(needle))?.server;
+      S.ib = find("interactive") || NAMES.ib; S.fmp = find("fmp") || NAMES.fmp;
+      log(`uso IB=“${S.ib}” FMP=“${S.fmp}”`);
+    }catch(e){ log("listTools: " + (e.code||e.message)); }
+    watchAll();
     if(S.tab==="insiders") loadInsiders(false);
     if(S.tab==="noticias"){ renderNewsChips(); loadNews(false); }
-    $("#sheet-diag").textContent = diag.join(" · ");
   });
   c.use("sample").then(async s => {
-    S.sample = s; diag.push("Claude: " + (s?"disponible":"no disponible"));
-    if(s){ try{ S.sampleLimits = await s.limits(); if(!S.sampleLimits?.tools) diag.push("sin herramientas en esta vista"); }catch(e){} }
-    $("#sheet-diag").textContent = diag.join(" · ");
+    S.sample = s; log("Claude: " + (s?"disponible":"no disponible"));
+    if(s){ try{ S.sampleLimits = await s.limits(); log(`herramientas de chat: ${S.sampleLimits?.tools ? "sí (máx "+S.sampleLimits.tools.maxCount+")" : "no"}`); }catch(e){ log("limits: "+(e.code||e.message)); } }
   });
 }
 if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", boot); else boot();
